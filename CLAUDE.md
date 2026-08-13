@@ -94,19 +94,34 @@ the dot size, the trunk width, every taper, and the root widths, so the tree is 
 heavier than it was under the old approximation (0.085). If the tree ever needs slimming,
 change the taper in `growTree()`, not this.
 
-The paint-on reveal (`clipPainted()`) is exactly the nib's sweep: discs of the dot's own
-radius along the spine, ending on the dot's **sub-sample** position rather than the nearest
-sample. It works because the mark is nowhere wider than the nib — true max half-width `0.0498`
-against a nib of `~0.061` in the same units, with the dot at `R*1.18` while painting — so the
-ink can never reach past the dot and there is nothing to see behind it.
+The paint-on reveal (`clipPainted()`) is the nib's sweep: discs along the spine, ending on the
+dot's **sub-sample** position rather than the nearest sample. Two measured constants size it,
+and the gap between them is the whole trick:
 
-Two earlier versions were worse and are worth not repeating. A full-height vertical curtain
+|            |        |                                                              |
+|------------|--------|--------------------------------------------------------------|
+|`MARK_HW`   |`0.0498`|widest the stroke gets **perpendicular** to the spine          |
+|`MARK_REACH`|`0.0828`|farthest any outline point sits from the **nearest** spine point|
+
+`MARK_REACH` is much the larger because the mark's corners jut out at the bends. Size every
+disc at `MARK_HW` and 364 of the outline's 1261 points are farther from the spine than that,
+so they never get revealed at all — the corners stay cut until the clip is dropped and the
+logo visibly snaps into shape at the end. Size every disc at `MARK_REACH` and the ink runs
+ahead of the dot instead. So the discs are **wide behind and narrow at the nib**: `MARK_REACH`
+from 14 samples back, tapering to `MARK_HW` at the dot. A corner finishes filling a few dozen
+px behind the brush, which reads as ink settling rather than as a pop.
+
+Three earlier versions were worse and are worth not repeating. A full-height vertical curtain
 crossed the steep parts of the mark at a shallow angle and dropped whole sections in ahead of
-the dot. Replacing the curtain with a straight cut square to the stroke fixed that, but a
-straight cut through a curve clips ink the brush has already laid on the inside of a bend,
-which reads as the drawing lagging the dot. A round leading edge has neither problem. The disc
-chain still starts behind the first spine point, so the round brush does not eat the mark's
-angled left cut. At `logo.prog >= 1` there is no clip and the outline is exact.
+the dot. A straight cut square to the stroke fixed that but clipped ink the brush had already
+laid on the inside of a bend, which reads as the drawing lagging the dot. A constant round
+brush fixed *that* but cut the corners, as above. The disc chain still starts behind the first
+spine point so the brush does not eat the mark's angled left cut, and at `logo.prog >= 1`
+there is no clip and the outline is exact.
+
+Sizing the nib itself matters too: it is plain `R` while painting. It was briefly `R*1.18`, to
+cover a straight cut that no longer exists, and at that size it is 36% wider than the stroke
+and reads as a blob riding the end of the line.
 
 -----
 

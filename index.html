@@ -234,6 +234,13 @@ const SPINE = [
 ];
 const LOGO_LOCAL = (()=>{ const p=[]; for(let i=0;i<SPINE.length;i+=2) p.push({x:SPINE[i], y:SPINE[i+1]}); return p; })();
 const WRATIO = 0.1148;   // median stroke width / mark width
+// Two measurements off the outline against SPINE, and the difference between
+// them is the whole trick. MARK_HW is the widest the stroke gets perpendicular
+// to the spine. MARK_REACH is the farthest any point of the outline sits from
+// the nearest spine point — much larger, because the mark's corners jut out at
+// the bends. A reveal disc of MARK_HW leaves those corners unrevealed until the
+// clip is dropped, which reads as the logo snapping into shape at the end.
+const MARK_HW = 0.0498, MARK_REACH = 0.0828;
 const logo = {scale:0, ox:0, oy:0, prog:0, vis:false};
 
 /* ═══════════ the dot ═══════════ */
@@ -471,22 +478,27 @@ function drawLogo(){
 function clipPainted(){
   const S = logo.scale, n = LOGO_LOCAL.length;
   const px = k => logo.ox + LOGO_LOCAL[k].x*S, py = k => logo.oy + LOGO_LOCAL[k].y*S;
-  // The reveal is exactly the nib's sweep: discs of the dot's own radius along
-  // the spine, ending on the dot's exact sub-sample position. Because the mark
-  // is nowhere wider than the nib (max half-width 0.0498 against a nib of
-  // ~0.061 in the same units) the ink can never reach past the dot, so the dot
-  // always covers the leading edge and there is nothing to see behind it.
-  const r = dot.r*0.90;                   // inside the nib even when it stretches
+  // The reveal is the nib's sweep: discs along the spine, ending on the dot's
+  // exact sub-sample position rather than the nearest sample. The leading disc
+  // sits inside the dot, so the ink can never reach past it.
+  // Wide behind, narrow at the nib. Discs well back use MARK_REACH so corners
+  // come out in their true shape; the last few taper to MARK_HW so the leading
+  // edge stays under the dot. The taper is short enough that a corner finishes
+  // filling a few dozen px behind the brush, which reads as ink settling.
+  const rFull = S*MARK_REACH*1.02, rTip = S*MARK_HW*1.03, K = 14;
+  const rAt = back => back >= K ? rFull : rTip + (rFull-rTip)*(back/K);
   const f = clamp(logo.prog,0,1)*(n-1), i = Math.floor(f), fr = f-i;
   ctx.beginPath();
   // start behind the first point, so the round brush does not eat the angled
   // cut the mark really has at its left end
   const bx = px(0)-(px(1)-px(0))*8, by = py(0)-(py(1)-py(0))*8;
-  ctx.moveTo(bx+r, by); ctx.arc(bx, by, r, 0, TAU);
-  for(let k=0;k<=i;k++){ ctx.moveTo(px(k)+r, py(k)); ctx.arc(px(k), py(k), r, 0, TAU); }
+  const rb = rAt(i+8);
+  ctx.moveTo(bx+rb, by); ctx.arc(bx, by, rb, 0, TAU);
+  for(let k=0;k<=i;k++){ const rk = rAt(i-k);
+    ctx.moveTo(px(k)+rk, py(k)); ctx.arc(px(k), py(k), rk, 0, TAU); }
   const j = Math.min(i+1, n-1);
   const lx = px(i)+(px(j)-px(i))*fr, ly = py(i)+(py(j)-py(i))*fr;
-  ctx.moveTo(lx+r, ly); ctx.arc(lx, ly, r, 0, TAU);
+  ctx.moveTo(lx+rTip, ly); ctx.arc(lx, ly, rTip, 0, TAU);
   ctx.clip();
 }
 
@@ -650,12 +662,7 @@ function goLogo(){
   const lp = LOGO_LOCAL.map(p=>({x:logo.ox+p.x*logo.scale, y:logo.oy+p.y*logo.scale}));
   travel(arc(dot.x,dot.y,lp[0].x,lp[0].y,R*2.4,30),460,{end:()=>{
     logo.vis=true;
-    // While painting, the dot is the nib: the reveal is cut square across the
-    // stroke at its centre, and the mark runs wider than the median WRATIO in
-    // places, so a dot of exactly R leaves a hairline of that cut showing.
-    dot.rT = R*1.18;
     travel(lp, RM?1:2100, {logo:true, end:()=>{
-      dot.rT = R;
       const tip=lp[lp.length-1];
       dot.cT = 1;                    // brown was the mark; off it, the dot is yellow
       travel(arc(tip.x,tip.y,tip.x-R*0.2,tip.y-R*2.6,R*3.4,26),430,{prep:100,end:()=>{
