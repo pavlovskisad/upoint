@@ -73,6 +73,11 @@ button{font:inherit;background:none;border:0;color:inherit;cursor:pointer}
 .lang button{padding:6px 5px;color:rgba(0,0,0,.28);transition:color .2s}
 .lang button.act{color:var(--ink)}
 .lang i{font-style:normal;color:rgba(0,0,0,.18);align-self:center;padding:0 2px}
+#top{width:30px;height:30px;border-radius:99px;border:1.5px solid rgba(0,0,0,.14);
+  font-size:14px;line-height:1;color:rgba(0,0,0,.42);display:none;
+  align-items:center;justify-content:center;transition:.2s}
+#top.on{display:flex}
+#top:hover{color:var(--ink);border-color:var(--ink)}
 #idx{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
   padding:8px 13px;border:1.5px solid rgba(0,0,0,.14);border-radius:99px;transition:.2s}
 #idx[aria-expanded="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
@@ -108,6 +113,7 @@ button{font:inherit;background:none;border:0;color:inherit;cursor:pointer}
   <div id="about"></div>
   <div id="menu"></div>
   <div class="hud" id="tr">
+    <button id="top" title="Back to top">↑</button>
     <div class="lang"><button id="ua">UA</button><i>/</i><button id="en" class="act">EN</button></div>
     <button id="idx" aria-expanded="false">Index</button>
   </div>
@@ -119,6 +125,11 @@ button{font:inherit;background:none;border:0;color:inherit;cursor:pointer}
 <script>
 (() => {
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+// EXPERIMENT, opt-in via ?jump — the dot leaps between tips instead of walking
+// the branches, and the branches paint themselves on their own clock. Rips out
+// rule 2 in CLAUDE.md §5 and hands the drawing to the tree instead of the dot.
+// Either delete this and goJump(), or make it the default and delete walk().
+const JUMP = /[?&]jump\b/.test(location.search);
 const TOUCH = matchMedia('(hover: none)').matches;
 const TAU = Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -155,10 +166,12 @@ const EVENTS = [
 const COPY = {
   en:{about:"We opened in Vienna with Ukrainian brands on the shelves and a room to gather in. The room filled up. Now it holds tours, talks, markets, concerts, and a crowd that keeps outgrowing the space. Ukrainian at the root, open to everyone.",
       h0:TOUCH?'tap or swipe':'click or swipe', h1:'again', h2:'keep going', h3:'swipe to grow', idx:'Index',
-      cal:'What is on', calNone:'No dates up yet. They go to the Telegram channel first.', calGo:'Open the channel'},
+      cal:'What is on', calNone:'No dates up yet. They go to the Telegram channel first.', calGo:'Open the channel',
+      top:'Back to top'},
   ua:{about:"Ми відкрились у Відні з українськими брендами на полицях і кімнатою, де можна зібратись. Кімната наповнилась. Тепер тут тури, лекції, барахолки, концерти і люди, яким уже тісно. Українське коріння, відкриті двері.",
       h0:TOUCH?'тапни або свайпни':'клікни або свайпни', h1:'ще раз', h2:'далі', h3:'свайп щоб рости', idx:'Індекс',
-      cal:'Афіша', calNone:'Дат поки немає. Вони зʼявляються спершу в Telegram-каналі.', calGo:'Відкрити канал'}
+      cal:'Афіша', calNone:'Дат поки немає. Вони зʼявляються спершу в Telegram-каналі.', calGo:'Відкрити канал',
+      top:'Повернутись нагору'}
 };
 let lang = 'en';
 
@@ -549,6 +562,7 @@ function paintText(){
     it.el.querySelector('.w').textContent=it[lang];
     it.el.querySelector('.u').textContent=it.tag; });
   document.getElementById('idx').textContent=COPY[lang].idx;
+  topBtn.title=COPY[lang].top; topBtn.setAttribute('aria-label',COPY[lang].top);
   const sh=document.getElementById('sheet'); sh.innerHTML='';
   ITEMS.forEach(it=>{ const a=document.createElement('a');
     if(it.panel){
@@ -587,10 +601,11 @@ function closeCal(){ calEl.classList.remove('open'); }
 
 /* ═══════════ phases ═══════════ */
 let phase='start';
-const hintEl=document.getElementById('hint');
+const hintEl=document.getElementById('hint'), topBtn=document.getElementById('top');
 function setHint(){
   const c=COPY[lang], t={start:c.h0,logoDone:c.h1,aboutDone:c.h2,menu:c.h3}[phase];
   if(t){ hintEl.textContent=t; hintEl.classList.add('vis'); } else hintEl.classList.remove('vis');
+  topBtn.classList.toggle('on', phase==='menu');   // only where there is no way out
 }
 const wait=(ms,f)=>setTimeout(f, RM?0:ms);
 
@@ -643,11 +658,75 @@ function go(it){
   if(picked) picked.el.classList.remove('pick');
   picked=it;
   if(!rootsGrown){ rootsGrown = true; growRoots(); }
-  const steps = route(atNode, it.node);
-  walk(steps, ()=>{
+  const arrive = ()=>{
     atNode = it.node; it.el.classList.add('pick');
     busy=false; idle=true; nextIdle=performance.now()+400; setHint();
+  };
+  if(JUMP) return goJump(it, arrive);
+  walk(route(atNode, it.node), arrive);
+}
+
+/* The ?jump experiment. The route still decides which branches exist — rule 1
+   holds, nothing new joins two existing points — but the retrace is dropped and
+   the dot flies straight to the tip while the branches draw themselves. */
+function goJump(it, done){
+  const steps = route(atNode, it.node);
+  const fresh = steps.filter(s => !s.rev && !s.seg.drawn).map(s => s.seg);
+  // walk() sprouts a twig on ~55% of retraced segments. Jumping skips the
+  // retrace, so without this the tree fills in visibly thinner and the two
+  // modes would differ in density as well as motion.
+  steps.filter(s => s.rev).forEach((_, i) => {
+    if(Math.random() >= 0.55) return;
+    setTimeout(()=>{ const d = TREE.segs.filter(s=>s.drawn);
+      if(d.length) startTwig(sproutOn(pick1(d))); }, RM?0:120 + i*160);
   });
+  const now = performance.now();
+  let start = now, last = now;
+  for(const seg of fresh){
+    seg.t0 = start;
+    seg.dur = RM ? 1 : clamp(seg.len*1.5, 300, 760);
+    seg.onDone = () => { const k = 1 + ((Math.random()*2.4)|0);
+      for(let j=0;j<k;j++) setTimeout(()=>startTwig(sproutOn(seg)), RM?0:j*130); };
+    last = Math.max(last, start + seg.dur);
+    start += seg.dur * 0.55;          // overlap, so a chain cascades outward
+  }
+  const to = it.node, d = Math.hypot(to.x-dot.x, to.y-dot.y);
+  const flight = RM ? 1 : clamp(d*1.35, 400, 900);
+  const hop = () => {
+    dot.rT = R;
+    travel(arc(dot.x, dot.y, to.x, to.y, Math.min(d*0.40, H*0.20), 40), flight,
+      {prep: RM?0:110, end: () => {
+        const sg = to.seg;
+        if(sg) dot.rT = clamp(sg.w1/2*1.14, R*0.58, R*1.2);
+        if(!fresh.length) return done();
+        // if the branches are still arriving, wait for them before settling
+        const left = last - performance.now();
+        left > 0 ? setTimeout(done, left) : done();
+      }});
+  };
+  // aim to land as the last branch reaches the tip, so the leap reads as cause
+  const lead = fresh.length ? (last - now) - flight - (RM?0:110) : 0;
+  lead > 0 ? setTimeout(hop, lead) : hop();
+}
+
+/* Back to the top. The sequence only ran forwards, so once the tree was up
+   there was no way out of it short of reloading. Clears what was grown — the
+   next visit grows a different tree anyway, and keeping a half-explored one
+   around would make the restart feel broken rather than clean. */
+function restart(){
+  anim=null; busy=false; idle=false;
+  TREE=null; twigs=[]; roots=[]; rootsGrown=false; atNode=null; picked=null;
+  sctx.clearRect(0,0,W,H);                       // the baked layer
+  menuEl.innerHTML=''; ITEMS.forEach(it=>{ it.el=null; it.node=null; });
+  closeCal(); closeSheet();
+  aboutEl.className=''; aboutEl.style.opacity=0; aboutEl.innerHTML='';
+  logo.vis=false; logo.prog=0;
+  logo.scale=markW; logo.ox=cx; logo.oy=cy;
+  dot.x=cx; dot.y=cy; dot.s=0; dot.sv=0; dot.ang=0; dot.ring=0; dot.ringT=0;
+  dot.r=R; dot.rT=R;
+  document.getElementById('tr').classList.remove('vis','on');
+  phase='start'; setHint();
+  idle=true; nextIdle=performance.now()+700;
 }
 
 /* ═══════════ input ═══════════ */
@@ -701,6 +780,7 @@ addEventListener('keydown',e=>{
   if(k||e.key===' '||e.key==='Enter'){ e.preventDefault(); advance(k||null); }
 });
 const idxBtn=document.getElementById('idx'), sheet=document.getElementById('sheet');
+topBtn.addEventListener('pointerdown',e=>{ e.stopPropagation(); restart(); });
 function closeSheet(){ sheet.classList.remove('open'); idxBtn.setAttribute('aria-expanded','false'); }
 idxBtn.addEventListener('pointerdown',e=>{ e.stopPropagation();
   const o=!sheet.classList.contains('open');
@@ -727,7 +807,16 @@ function frame(now){
   }
   if(TREE){
     for(const s of TREE.segs){
-      if(s.baked || s.prog<=0) continue;
+      if(s.baked) continue;
+      // A segment with its own t0 is painting itself (jump mode); otherwise its
+      // prog is driven by the dot walking over it.
+      if(s.t0){
+        const r = clamp((now-s.t0)/s.dur, 0, 1);
+        s.prog = eOut(r);
+        if(r >= 1 && !s.drawn){ s.drawn=true; s.t0=0;
+          if(s.onDone){ const f=s.onDone; s.onDone=null; f(); } }
+      }
+      if(s.prog<=0) continue;
       inkStroke(s, s.w0, s.w1, INK, s.prog);
       if(s.prog >= 1 && s.drawn) bakeStroke(s, s.w0, s.w1, INK);
     }
