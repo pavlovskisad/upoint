@@ -157,11 +157,24 @@ word alone, and the tag runs toward the middle of the screen (`inL` / `inR`), wh
 always room for it. Only the word has to fit anywhere near its tip.
 
 **Back to top.** The sequence only ran forwards, so the tree was a dead end short of a reload.
-`restart()` clears what was grown and returns to bare paper; the control only appears in
-`menu`, which is the only phase with no way out.
+The `↑` control appears only in `menu`, the one phase with no way out. `restart()` is a
+transition, not a cut: the dot pops off wherever it stands and flies home to its opening
+position while everything grown dissolves behind it (`fade`, a global alpha on the drawing
+only — the dot stays solid throughout). Nothing is torn down until the dot lands, so the
+visitor arrives at the opening state rather than being dropped into it.
 
-**Index** (top right) lists all four as plain text at every stage after the logo. Non-negotiable.
-Someone arriving for the lectorium link gets it in two seconds without playing anything.
+It clears rather than preserves the tree. The next run grows a different one regardless, and
+coming *back* to a half-explored tree reads as broken rather than clean.
+
+**Index is currently off** (`INDEX_ON = false`), at the client's request. Flip it back to
+`true` and nothing else needs changing — the button and the sheet are both still wired.
+
+It is worth knowing what is switched off. Index listed all six as plain text at every stage
+after the logo: it was the only route that handed someone a link in two seconds without
+playing the sequence, and the only keyboard path to `spot` and `calendar`, which the four
+arrow keys cannot reach. With it off the tree is the sole way in, so anyone arriving for the
+lectorium link has to play to get it. Fine for a launch that is mostly about the feel; watch
+the analytics in §11 before deciding it is permanent.
 
 -----
 
@@ -219,12 +232,13 @@ ink            ribbon(), inkStroke()         tapered fills
 routing        chainOf(), route()            which segments lie between two tips
 phases         goLogo/goAbout/goMenu/go()    the sequence
                goJump()                      dot flies, branches paint themselves
-               restart()                     back to top, clears what was grown
+               restart()                     back to top, dissolves and flies home
 input          pointer, wheel, keyboard
 frame()        render loop
 ```
 
-**Render order per frame:** clear → mark → baked layer → live strokes → dot.
+**Render order per frame:** clear → mark → baked layer → live strokes → dot. Everything before
+the dot is drawn at `globalAlpha = fade`, which is 1 except during `restart()`.
 
 **Self-painting segments.** A segment with a `t0` is drawing itself on its own clock, exactly
 as twigs and roots already did; `frame()` advances it and fires its `onDone`. Nothing drives

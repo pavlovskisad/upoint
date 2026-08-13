@@ -125,6 +125,12 @@ button{font:inherit;background:none;border:0;color:inherit;cursor:pointer}
 (() => {
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const TOUCH = matchMedia('(hover: none)').matches;
+// Index off for now, at the client's request. It was the one route that handed
+// someone every link in two seconds without playing the sequence, and the only
+// keyboard path to the two words the arrow keys cannot reach — so with it off,
+// the tree is the only way in. Flip to true to bring it back; nothing else
+// needs changing.
+const INDEX_ON = false;
 const TAU = Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const rnd=(a,b)=>a+Math.random()*(b-a);
@@ -243,6 +249,7 @@ function hopIdle(){
    8  walking      the dot only ever travels along branches, never across
    ═══════════════════════════════════════════════════════════ */
 let TREE = null, twigs = [], roots = [], rootsGrown = false;
+let fade = 1;                        // 1 normally; ramps to 0 during restart()
 
 /* the mark is the root collar. everything below it runs the tree rules with
    the light bias flipped to gravity, shorter steps, and one more fork, then
@@ -560,10 +567,10 @@ function paintText(){
   ITEMS.forEach(it=>{ if(!it.el) return;
     it.el.querySelector('.w').textContent=it[lang];
     it.el.querySelector('.u').textContent=it.tag; });
-  document.getElementById('idx').textContent=COPY[lang].idx;
+  idxBtn.textContent=COPY[lang].idx;
   topBtn.title=COPY[lang].top; topBtn.setAttribute('aria-label',COPY[lang].top);
   const sh=document.getElementById('sheet'); sh.innerHTML='';
-  ITEMS.forEach(it=>{ const a=document.createElement('a');
+  if(INDEX_ON) ITEMS.forEach(it=>{ const a=document.createElement('a');
     if(it.panel){
       a.setAttribute('role','button'); a.tabIndex=0;
       a.addEventListener('click',ev=>{ ev.preventDefault(); closeSheet(); openCal(); });
@@ -717,19 +724,33 @@ function goJump(it, done){
    next visit grows a different tree anyway, and keeping a half-explored one
    around would make the restart feel broken rather than clean. */
 function restart(){
-  anim=null; busy=false; idle=false;
-  TREE=null; twigs=[]; roots=[]; rootsGrown=false; atNode=null; picked=null;
-  sctx.clearRect(0,0,W,H);                       // the baked layer
-  menuEl.innerHTML=''; ITEMS.forEach(it=>{ it.el=null; it.node=null; });
-  closeCal(); closeSheet();
-  aboutEl.className=''; aboutEl.style.opacity=0; aboutEl.innerHTML='';
-  logo.vis=false; logo.prog=0;
-  logo.scale=markW; logo.ox=cx; logo.oy=cy;
-  dot.x=cx; dot.y=cy; dot.s=0; dot.sv=0; dot.ang=0; dot.ring=0; dot.ringT=0;
-  dot.r=R; dot.rT=R;
+  if(busy) return;
+  busy=true; idle=false;
+  // The dot pops off wherever it is and flies home while everything it grew
+  // dissolves behind it, so the visitor arrives at the opening state rather
+  // than being cut to it. Nothing is torn down until the dot has landed.
+  hintEl.classList.remove('vis');
   document.getElementById('tr').classList.remove('vis','on');
-  phase='start'; setHint();
-  idle=true; nextIdle=performance.now()+700;
+  closeCal(); closeSheet();
+  ITEMS.forEach(it=>{ if(it.el) it.el.classList.remove('show','pick'); });
+  const t0=performance.now(), dim=RM?1:620;
+  (function melt(){ fade = 1 - clamp((performance.now()-t0)/dim, 0, 1);
+    if(fade > 0) requestAnimationFrame(melt); })();
+  dot.rT = R;
+  const d = Math.hypot(cx-dot.x, cy-dot.y);
+  travel(arc(dot.x, dot.y, cx, cy, Math.min(d*0.34, H*0.18), 44), RM?1:780,
+    {prep: RM?0:130, end:()=>{
+      TREE=null; twigs=[]; roots=[]; rootsGrown=false; atNode=null; picked=null;
+      sctx.clearRect(0,0,W,H);                   // the baked layer
+      menuEl.innerHTML=''; ITEMS.forEach(it=>{ it.el=null; it.node=null; });
+      aboutEl.className=''; aboutEl.style.opacity=0; aboutEl.innerHTML='';
+      logo.vis=false; logo.prog=0;
+      logo.scale=markW; logo.ox=cx; logo.oy=cy;
+      dot.x=cx; dot.y=cy; dot.ring=0; dot.ringT=0; dot.r=R; dot.rT=R;
+      fade=1;                                    // nothing left to show
+      phase='start'; setHint();
+      busy=false; idle=true; nextIdle=performance.now()+700;
+    }});
 }
 
 /* ═══════════ input ═══════════ */
@@ -783,6 +804,7 @@ addEventListener('keydown',e=>{
   if(k||e.key===' '||e.key==='Enter'){ e.preventDefault(); advance(k||null); }
 });
 const idxBtn=document.getElementById('idx'), sheet=document.getElementById('sheet');
+if(!INDEX_ON) idxBtn.style.display='none';
 topBtn.addEventListener('pointerdown',e=>{ e.stopPropagation(); restart(); });
 function closeSheet(){ sheet.classList.remove('open'); idxBtn.setAttribute('aria-expanded','false'); }
 idxBtn.addEventListener('pointerdown',e=>{ e.stopPropagation();
@@ -799,6 +821,7 @@ document.querySelectorAll('.lang button').forEach(b=>{
 /* ═══════════ frame ═══════════ */
 function frame(now){
   ctx.clearRect(0,0,W,H);
+  ctx.globalAlpha = fade;            // restart() dissolves the drawing, not the dot
   if(logo.vis) drawLogo();
   ctx.drawImage(stat, 0, 0, W, H);
 
@@ -811,9 +834,7 @@ function frame(now){
   if(TREE){
     for(const s of TREE.segs){
       if(s.baked) continue;
-      // A segment with its own t0 is painting itself (jump mode); otherwise its
-      // prog is driven by the dot walking over it.
-      if(s.t0){
+      if(s.t0){                      // painting itself, on its own clock
         const r = clamp((now-s.t0)/s.dur, 0, 1);
         s.prog = eOut(r);
         if(r >= 1 && !s.drawn){ s.drawn=true; s.t0=0;
@@ -831,6 +852,7 @@ function frame(now){
     }
   }
 
+  ctx.globalAlpha = 1;
   dot.px=dot.x; dot.py=dot.y;
   if(anim){
     const el=now-anim.t0;
