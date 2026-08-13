@@ -1,6 +1,6 @@
-# point
+# upoint
 
-Landing page for Point, a Ukrainian lifestyle club in Vienna.
+Landing page for upoint, a Ukrainian lifestyle club in Vienna.
 
 Single file, no build, no dependencies.
 
@@ -16,7 +16,7 @@ build command and output directory empty. `vercel.json` sets the cache headers; 
 else is default.
 
 The one thing to change after attaching a custom domain: `og:url`, `og:image` and the
-canonical `<link>` in `index.html` are absolute URLs pointing at `upoint-bice.vercel.app`.
+canonical `<link>` in `index.html` are absolute URLs pointing at `upoint.club`.
 Link previews break silently if they point at the wrong host.
 
 ```

@@ -1,6 +1,6 @@
-# Point — landing page
+# upoint — landing page
 
-Single-file landing for **Point**, a Ukrainian lifestyle club in Vienna (`@upointvienna`).
+Single-file landing for **upoint**, a Ukrainian lifestyle club in Vienna (`@upointvienna`).
 Everything lives in `index.html`. No build step, no dependencies. Drop it at the repo root
 and Vercel serves it as-is.
 
@@ -127,7 +127,7 @@ and reads as a blob riding the end of the line.
 
 ## 3. The concept
 
-Their space is called Point. A point that moves draws a line. That line is their logo. So the
+Their space is called upoint. A point that moves draws a line. That line is their logo. So the
 visitor **is** the mark in motion, and moving through the site grows the thing.
 
 The metaphor is a rhizome rather than a tree in the strict sense: no single centre, lateral
@@ -238,6 +238,19 @@ steps are shorter with one more fork level, and anything crossing the bottom edg
 mid-width instead of tapering. The cut-off is what sells “continues below”. Fine hair roots
 that stay in frame do taper, so both readings are present.
 
+**Roots have to leave the mark, not hang off it.** Three things do that, and all three matter:
+they start *on the spine* rather than below the mark, so their round start caps are buried
+inside the stroke; they start near the mark's own width (`LW*0.66..0.88`) and taper downward,
+rather than starting thin; and they fan from the first step (`lat*rnd(0.70,1.45)`) rather than
+dropping straight down. Steepening that first step was tried and is wrong — every root then
+plunges into a narrow onion under the trunk and the mark stops looking like something they
+spread from.
+
+**The footer mark is drawn at `markW*0.58`.** It was `0.30`, which put its stroke at a quarter
+of the trunk's width and the same weight as a single root, so the logo vanished into its own
+root crown. If it ever needs to shrink again, thin the roots to match — the mark has to stay
+the heaviest brown thing down there or it stops reading as the source.
+
 **Fixed per session:** trunk, low fork, high fork, six tips, and which side each tip grows on.
 **Regenerated per session:** trunk lean, fork heights, limb angles and lengths, bend direction
 and depth, twig sides, root count (5–7 primaries), which primaries become taproots.
@@ -270,8 +283,11 @@ input          pointer, wheel, keyboard
 frame()        render loop
 ```
 
-**Render order per frame:** clear → mark → baked layer → live strokes → dot. Everything before
-the dot is drawn at `globalAlpha = fade`, which is 1 except during `restart()`.
+**Render order per frame:** clear → baked layer → live strokes → **mark** → flood → dot. The
+mark goes on top of everything grown, which is what makes the tree read as coming out of it:
+the trunk climbs from behind it and the roots run down under it, so the logo stays whole
+instead of being painted over by its own tree. Everything up to the flood is drawn at
+`globalAlpha = fade`, which is 1 except during `restart()`.
 
 **Self-painting segments.** A segment with a `t0` is drawing itself on its own clock, exactly
 as twigs and roots already did; `frame()` advances it and fires its `onDone`. Nothing drives

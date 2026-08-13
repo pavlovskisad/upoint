@@ -3,22 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Point — lifestyle club, Vienna</title>
-<meta name="description" content="Point. Ukrainian lifestyle club in Vienna. Tours, talks, markets, brands, community.">
+<title>upoint — lifestyle club, Vienna</title>
+<meta name="description" content="Lifestyle club where you find your people. Ukrainian-founded, in Vienna.">
 <meta name="theme-color" content="#ffffff">
-<link rel="canonical" href="https://upoint-bice.vercel.app/">
+<link rel="canonical" href="https://upoint.club/">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-<meta property="og:title" content="Point — lifestyle club, Vienna">
-<meta property="og:description" content="Tours, talks, markets, brands, community.">
+<meta property="og:title" content="upoint">
+<meta property="og:description" content="Lifestyle club where you find your people.">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Point">
-<meta property="og:url" content="https://upoint-bice.vercel.app/">
+<meta property="og:site_name" content="upoint">
+<meta property="og:url" content="https://upoint.club/">
 <!-- Absolute URL required: scrapers do not resolve relative og:image. Update on custom domain. -->
-<meta property="og:image" content="https://upoint-bice.vercel.app/og.png">
+<meta property="og:image" content="https://upoint.club/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="The Point mark.">
+<meta property="og:image:alt" content="The upoint mark.">
 <meta property="og:locale" content="en_GB">
 <meta property="og:locale:alternate" content="uk_UA">
 <meta name="twitter:card" content="summary_large_image">
@@ -290,7 +290,7 @@ let fade = 1;                        // 1 normally; ramps to 0 during restart()
 function logoScreenPts(){
   return LOGO_LOCAL.map(p => ({x: logo.ox+p.x*logo.scale, y: logo.oy+p.y*logo.scale}));
 }
-function rootStep(p, ang, len, w, depth, delay, LW){
+function rootStep(p, ang, len, w, depth, delay, LW, lat=0){
   if(roots.length > 68) return;
   const side = Math.random()>0.5 ? 1 : -1;
   const b = {x: p.x+Math.cos(ang)*len, y: p.y+Math.sin(ang)*len};
@@ -310,23 +310,32 @@ function rootStep(p, ang, len, w, depth, delay, LW){
   for(let j=0;j<k;j++){
     const sd = k===2 ? (j===0?-1:1) : (Math.random()>0.5?1:-1);
     const a = ang + sd*(16+Math.random()*28)*Math.PI/180;
-    let vx=Math.cos(a), vy=Math.sin(a)+0.30;                  // rule 6, flipped: gravity
+    // gravity, plus the outward lean the steep first step deferred
+    let vx=Math.cos(a) + lat*0.34, vy=Math.sin(a)+0.30;
     rootStep(b, Math.atan2(vy,vx), len*rnd(0.62,0.86), w1, depth-1,
-             delay+240+Math.random()*170, LW);
+             delay+240+Math.random()*170, LW, lat*0.66);
   }
 }
 function growRoots(){
   if(roots.length || !logo.scale) return;
   const lp = logoScreenPts(), LW = logo.scale*WRATIO;
-  const n = 5 + ((Math.random()*3)|0);
+  const n = 6 + ((Math.random()*3)|0);
   for(let i=0;i<n;i++){
-    const u = clamp(0.08 + (i/(n-1))*0.84 + rnd(-0.06,0.06), 0.04, 0.96);
-    const p = lp[Math.round(u*(lp.length-1))];
+    const u = clamp(0.06 + (i/(n-1))*0.88 + rnd(-0.05,0.05), 0.03, 0.97);
+    const q = lp[Math.round(u*(lp.length-1))];
+    // Start on the spine and run thick. The mark is drawn over the top of
+    // everything, so the whole start of a root is hidden inside the stroke and
+    // what shows is only where it leaves the mark's lower edge — already at
+    // width, tapering downward, which is what makes it read as growing out.
+    const p = q;
     const lat = (u-0.5)*2;
     const taproot = Math.abs(lat) < 0.34;
-    const ang = Math.atan2(1, lat*rnd(0.55,1.15));
+    // Fan from the start, wider than the mark: a root system that leaves
+    // straight down bundles into a narrow onion under the trunk and stops
+    // reading as something the mark spreads into.
+    const ang = Math.atan2(1, lat*rnd(0.70,1.45));
     rootStep(p, ang, taproot ? H*rnd(0.10,0.15) : H*rnd(0.055,0.10),
-             LW*rnd(0.40,0.58), 3, i*90 + rnd(0,120), LW);
+             LW*rnd(0.66,0.88), 3, i*80 + rnd(0,110), LW, lat);
   }
 }
 
@@ -530,7 +539,10 @@ function layout(){
   placeAbout();
 }
 function footerPose(){
-  const s = Math.min(markW*0.30, 130);
+  // Big enough to read as the thing everything grew from. At 0.30 its stroke
+  // was a quarter of the trunk's and the same weight as a root, so the mark
+  // disappeared into its own root crown.
+  const s = Math.min(markW*0.58, 210);
   return {scale:s, ox:cx, oy:H - Math.max(96, H*0.125) - SAB*0.7};
 }
 
@@ -876,7 +888,6 @@ document.querySelectorAll('.lang button').forEach(b=>{
 function frame(now){
   ctx.clearRect(0,0,W,H);
   ctx.globalAlpha = fade;            // restart() dissolves the drawing, not the dot
-  if(logo.vis) drawLogo();
   ctx.drawImage(stat, 0, 0, W, H);
 
   for(const r of roots){
@@ -906,6 +917,7 @@ function frame(now){
     }
   }
 
+  if(logo.vis) drawLogo();
   ctx.globalAlpha = 1;
   if(flood.r > 0.5){                   // the dot, opened out into the page
     ctx.beginPath(); ctx.arc(flood.x, flood.y, flood.r, 0, TAU);
