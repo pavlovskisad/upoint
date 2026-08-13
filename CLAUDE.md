@@ -59,9 +59,14 @@ them. Yellow is what grew: trunk, branches, twigs. Nothing else gets a colour.
 |Beat                    |Colour                    |
 |------------------------|--------------------------|
 |opening, before any tap  |`GPS_RGB` — map-pin blue |
-|first tap, painting the mark|`BARK_RGB` — brown     |
+|the tap itself           |`INK_RGB` — yellow, snapped, not eased|
+|the hop to the mark, then painting|`BARK_RGB` — brown|
 |off the mark, through about, down to the root|`INK_RGB` — yellow|
 |on the tree              |`BARK_RGB` — brown       |
+
+The tap snaps to yellow rather than easing to it: blue easing to yellow passes through olive
+and reads as mud. It then eases blue-free from yellow into brown across the hop, so the first
+tap shows both brand colours before a single stroke is laid.
 
 It is brown while it paints the mark because there it *is* the mark in motion. It turns yellow
 the instant it pops off the right tip and stays yellow through the about page and down to the
@@ -135,6 +140,13 @@ brush fixed *that* but cut the corners, as above. The disc chain still starts be
 spine point so the brush does not eat the mark's angled left cut, and at `logo.prog >= 1`
 there is no clip and the outline is exact.
 
+**The nib drowns in its own line.** `dot.sub` fades it out just after the stroke starts and
+back in near the end, driven off `logo.prog` rather than a timer so it cannot drift out of
+step with the paint. It surfaces briskly (`0.24` per frame): while part-transparent the nib
+overhangs the stroke onto bare paper and reads as a pale smudge, so that phase wants to be
+short. Nothing else depends on the dot being visible — the reveal already ends in a disc the
+width of the stroke, so with the nib gone the line simply ends in a clean round cap.
+
 Sizing the nib itself matters too: it is plain `R` while painting. It was briefly `R*1.18`, to
 cover a straight cut that no longer exists, and at that size it is 36% wider than the stroke
 and reads as a blob riding the end of the line.
@@ -161,7 +173,7 @@ Five states. Tap, click, swipe, wheel, arrow keys, space and enter all advance.
 |Phase      |What happens                                                                                                                                               |
 |-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
 |`start`    |Empty paper. The dot lands centre as a blue map pin, accuracy ring pulsing, and idles. Nothing else on screen.                                             |
-|`logo`     |The pin turns brown, hops to the left tip and paints the mark, then pops off the right tip: the separation beat.                                           |
+|`logo`     |The pin flashes yellow, settles to brown over the hop to the left tip, then paints the mark. The nib sinks under its own ink at `prog 0.03` and surfaces at `0.82`, so the middle of the stroke draws itself. It pops off the right tip: the separation beat.|
 |`logoDone` |Idles beside the tip, now yellow. UA/EN appears.                                                                                                           |
 |`about`    |The dot squats and launches top-left **as the mark drops to the footer on the same frame** — the leap pushes the logo down. It then opens out into a yellow page; the copy writes itself in, in white.|
 |`aboutDone`|Idles.                                                                                                                                                     |
