@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Point — lifestyle club, Vienna</title>
+<meta name="description" content="Point. Ukrainian lifestyle club in Vienna. Tours, talks, markets, brands, community.">
+<meta name="theme-color" content="#ffffff">
+<link rel="canonical" href="https://upoint.vercel.app/">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta property="og:title" content="Point — lifestyle club, Vienna">
+<meta property="og:description" content="Tours, talks, markets, brands, community.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Point">
+<meta property="og:url" content="https://upoint.vercel.app/">
+<!-- Absolute URL required: scrapers do not resolve relative og:image. Update on custom domain. -->
+<meta property="og:image" content="https://upoint.vercel.app/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="The Point mark.">
+<meta property="og:locale" content="en_GB">
+<meta property="og:locale:alternate" content="uk_UA">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+  --deep:#aa6c10; --bright:#f7be00; --ink:#111; --paper:#fff; --mute:rgba(0,0,0,.38);
+  --font:'Gilroy','Sofia Pro','Figtree',-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden;background:var(--paper);color:var(--ink);font-family:var(--font)}
+body{overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
+.layer{position:fixed;inset:0;pointer-events:none;z-index:2}
+.on{pointer-events:auto}
+
+#about{position:absolute;opacity:0;font-size:clamp(17px,4.6vw,26px);font-weight:500;
+  letter-spacing:-.02em;line-height:1.34}
+#about span{display:inline-block;opacity:0;transform:translateY(14px) scale(.96);filter:blur(4px)}
+#about.go span{opacity:1;transform:none;filter:none;
+  transition:opacity .5s ease,transform .55s cubic-bezier(.2,.9,.25,1),filter .5s ease}
+#about.out{transform:translateY(-72vh);opacity:0;
+  transition:transform .75s cubic-bezier(.6,0,.3,1),opacity .5s ease .12s}
+
+.item{position:absolute;opacity:0;transform:translateY(10px);
+  transition:opacity .5s ease,transform .5s cubic-bezier(.2,.9,.25,1)}
+.item.show{opacity:1;transform:none}
+.item .inner{display:inline-block;pointer-events:auto;cursor:pointer;padding:7px 5px}
+.item .w{display:block;font-size:clamp(18px,5vw,28px);font-weight:600;letter-spacing:-.03em;
+  line-height:1;color:rgba(0,0,0,.26);transition:color .3s ease}
+.item.pick .w{color:var(--ink)}
+.item .u{display:block;margin-top:8px;font-size:10px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--deep);text-decoration:none;white-space:nowrap;
+  opacity:0;transform:translateY(-4px);pointer-events:none;
+  transition:opacity .35s ease .08s,transform .35s ease .08s}
+.item.pick .u{opacity:1;transform:none;pointer-events:auto}
+.item .u:hover{color:var(--ink)}
+.item.up,.item.down{text-align:center;width:64vw;margin-left:-32vw}
+.item.left{text-align:right}
+.item.right{text-align:left}
+
+.hud{position:absolute;opacity:0;transition:opacity .6s ease}
+.hud.vis{opacity:1}
+#tr{top:calc(20px + var(--sat));right:18px;display:flex;gap:14px;align-items:center}
+#hint{top:calc(24px + var(--sat));left:20px;font-size:10px;font-weight:700;letter-spacing:.22em;
+  text-transform:uppercase;color:var(--mute);max-width:38vw;line-height:1.7}
+button{font:inherit;background:none;border:0;color:inherit;cursor:pointer}
+.lang{display:flex;font-size:10px;font-weight:700;letter-spacing:.14em}
+.lang button{padding:6px 5px;color:rgba(0,0,0,.28);transition:color .2s}
+.lang button.act{color:var(--ink)}
+.lang i{font-style:normal;color:rgba(0,0,0,.18);align-self:center;padding:0 2px}
+#idx{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  padding:8px 13px;border:1.5px solid rgba(0,0,0,.14);border-radius:99px;transition:.2s}
+#idx[aria-expanded="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+#sheet{position:absolute;top:calc(58px + var(--sat));right:18px;width:min(84vw,290px);background:var(--paper);
+  border:1.5px solid rgba(0,0,0,.1);padding:6px;opacity:0;transform:translateY(-6px);
+  transition:.22s ease;pointer-events:none;box-shadow:0 20px 46px -20px rgba(0,0,0,.3)}
+#sheet.open{opacity:1;transform:none;pointer-events:auto}
+#sheet a{display:flex;justify-content:space-between;align-items:baseline;gap:14px;padding:11px 12px;
+  text-decoration:none;color:var(--ink);font-size:15px;font-weight:500;letter-spacing:-.015em;cursor:pointer}
+#sheet a:hover{background:var(--bright)}
+#sheet em{font-style:normal;font-size:9px;font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--mute)}
+#cal{position:absolute;left:50%;top:50%;transform:translate(-50%,-46%);
+  width:min(88vw,340px);max-height:70vh;overflow-y:auto;background:var(--paper);
+  border:1.5px solid rgba(0,0,0,.1);padding:18px;opacity:0;pointer-events:none;
+  transition:.24s ease;box-shadow:0 30px 62px -26px rgba(0,0,0,.34)}
+#cal.open{opacity:1;transform:translate(-50%,-50%);pointer-events:auto}
+#cal h3{font-size:10px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--mute);margin-bottom:4px}
+#cal li{list-style:none;display:flex;gap:13px;align-items:baseline;padding:11px 0;
+  border-top:1px solid rgba(0,0,0,.09);font-size:15px;font-weight:500;letter-spacing:-.015em}
+#cal li b{font-weight:700;font-size:10px;letter-spacing:.1em;color:var(--deep);
+  white-space:nowrap;text-transform:uppercase;flex:none;min-width:62px}
+#cal p{margin-top:12px;font-size:14px;line-height:1.5;color:var(--mute)}
+#cal p a{color:var(--deep);font-weight:600}
+:focus-visible{outline:2px solid var(--deep);outline-offset:4px}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div class="layer">
+  <div id="about"></div>
+  <div id="menu"></div>
+  <div class="hud" id="tr">
+    <div class="lang"><button id="ua">UA</button><i>/</i><button id="en" class="act">EN</button></div>
+    <button id="idx" aria-expanded="false">Index</button>
+  </div>
+  <div id="sheet"></div>
+  <div id="cal"></div>
+  <div class="hud" id="hint"></div>
+</div>
+
+<script>
+(() => {
+const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const TOUCH = matchMedia('(hover: none)').matches;
+const TAU = Math.PI*2;
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const pick1=a=>a[(Math.random()*a.length)|0];
+
+/* ═══════════ content ═══════════ */
+const LINKS = {
+  market:'https://t.me/andrrit2', insta:'https://www.instagram.com/upointvienna',
+  lecture:'https://t.me/Upointlecture', channel:'https://t.me/upvienna',
+  // PLACEHOLDER — stands in for the Google Maps place link, which the club has
+  // not supplied yet. Do not launch on this: "spot" pointing at Instagram is a
+  // dead end for someone trying to find the door.
+  spot:'https://www.instagram.com/upointvienna'
+};
+// `side` is where the label sits, not how you get there — a swipe picks the tip
+// nearest its own angle (see pickByAngle). `panel` opens the schedule in-page.
+const ITEMS = [
+  {side:'left',  key:'market',   en:'things',      ua:'речі',      tag:'telegram · market'},
+  {side:'left',  key:'spot',     en:'spot',        ua:'місце',     tag:'google maps'},
+  {side:'up',    key:'insta',    en:'experiences', ua:'враження',  tag:'instagram'},
+  {side:'right', key:'calendar', en:'calendar',    ua:'афіша',     tag:'what is on', panel:true},
+  {side:'right', key:'lecture',  en:'talks',       ua:'розмови',   tag:'telegram · lectorium'},
+  {side:'right', key:'channel',  en:'community',   ua:'спільнота', tag:'telegram · channel'}
+];
+/* The schedule. Add a row per event, ISO date, soonest first — this is the only
+   place it lives, so whoever updates the Instagram updates this too. Anything
+   dated before today drops out on its own, so a list nobody has touched in a
+   month shows the empty state instead of last month's events.
+
+   {on:'2026-09-14', at:'19:00', en:'Lecture: Vienna modernism', ua:'Лекція: віденський модерн'},  */
+const EVENTS = [
+];
+const COPY = {
+  en:{about:"We opened in Vienna with Ukrainian brands on the shelves and a room to gather in. The room filled up. Now it holds tours, talks, markets, concerts, and a crowd that keeps outgrowing the space. Ukrainian at the root, open to everyone.",
+      h0:TOUCH?'tap or swipe':'click or swipe', h1:'again', h2:'keep going', h3:'swipe to grow', idx:'Index',
+      cal:'What is on', calNone:'No dates up yet. They go to the Telegram channel first.', calGo:'Open the channel'},
+  ua:{about:"Ми відкрились у Відні з українськими брендами на полицях і кімнатою, де можна зібратись. Кімната наповнилась. Тепер тут тури, лекції, барахолки, концерти і люди, яким уже тісно. Українське коріння, відкриті двері.",
+      h0:TOUCH?'тапни або свайпни':'клікни або свайпни', h1:'ще раз', h2:'далі', h3:'свайп щоб рости', idx:'Індекс',
+      cal:'Афіша', calNone:'Дат поки немає. Вони зʼявляються спершу в Telegram-каналі.', calGo:'Відкрити канал'}
+};
+let lang = 'en';
+
+/* ═══════════ canvas ═══════════ */
+const cv = document.getElementById('c'), ctx = cv.getContext('2d');
+const stat = document.createElement('canvas'), sctx = stat.getContext('2d');
+let W,H,DPR,cx,cy,markW,SW,R,M,SAB=0;
+const INK = '#f7be00', BARK = '#aa6c10';
+
+/* The real mark, traced from Logo_U.Point aesthetic space.ai. Local space:
+   x spans [-0.5, 0.5] across the mark, y uses the same scale factor, so
+   logo.scale is the drawn width in px. MARK_D is the outline as drawn —
+   variable width, angled cut ends — and is filled, not stroked. SPINE is its
+   centreline: what the dot walks and what the roots hang off. */
+const MARK_D = 'M-0.136 0.1687C-0.1703 0.1687 -0.1986 0.1592 -0.2204 0.1403C-0.272 0.0955 -0.2676 0.0183 -0.2638 -0.0499C-0.2635 -0.0565 -0.2631 -0.0628 -0.2628 -0.069C-0.277 -0.0694 -0.3074 -0.0668 -0.3652 -0.0487C-0.4157 -0.0329 -0.4597 -0.0138 -0.4602 -0.0136L-0.5 -0.1048C-0.4978 -0.1057 -0.4466 -0.128 -0.3878 -0.1459C-0.2935 -0.1745 -0.235 -0.1761 -0.1979 -0.151C-0.1743 -0.135 -0.1618 -0.1095 -0.1627 -0.0794C-0.1631 -0.0678 -0.1638 -0.0559 -0.1644 -0.0444C-0.1664 -0.0082 -0.1698 0.0523 -0.1551 0.0651C-0.1507 0.0689 -0.1363 0.0715 -0.1102 0.0662C-0.0635 0.0569 -0.0335 0.0207 0.0012 -0.0212C0.0477 -0.0772 0.1056 -0.147 0.2137 -0.1335C0.3105 -0.1214 0.3524 -0.0638 0.3861 -0.0175C0.4161 0.0238 0.4399 0.0563 0.5 0.0705L0.4772 0.1674C0.3811 0.1448 0.3392 0.0873 0.3056 0.0411C0.2754 -0.0005 0.2554 -0.0279 0.2014 -0.0347C0.1497 -0.0411 0.1235 -0.0127 0.0778 0.0424C0.039 0.0893 -0.0094 0.1476 -0.0907 0.1639C-0.1068 0.1671 -0.1219 0.1687 -0.136 0.1687Z';
+const MARK_PATH = new Path2D(MARK_D);
+const SPINE = [
+  -0.4801,-0.0592, -0.469,-0.0638, -0.4579,-0.0683, -0.4468,-0.0727, -0.4356,-0.077,
+  -0.4244,-0.0811, -0.4131,-0.0852, -0.4018,-0.0891, -0.3904,-0.0929, -0.379,-0.0965,
+  -0.3675,-0.1, -0.356,-0.1033, -0.3445,-0.1064, -0.3328,-0.1093, -0.3211,-0.1119,
+  -0.3094,-0.1142, -0.2976,-0.1161, -0.2857,-0.1175, -0.2758,-0.1164, -0.2699,-0.111,
+  -0.2641,-0.1053, -0.2583,-0.0992, -0.2524,-0.0927, -0.2466,-0.0856, -0.2408,-0.0778,
+  -0.2352,-0.0694, -0.2299,-0.0602, -0.2248,-0.0503, -0.2203,-0.0398, -0.2162,-0.0288,
+  -0.2127,-0.0174, -0.2097,-0.0058, -0.2072,0.0058, -0.2048,0.0172, -0.2022,0.0284,
+  -0.1991,0.0392, -0.1955,0.0497, -0.1915,0.0597, -0.187,0.0693, -0.182,0.0783, -0.1767,0.0868,
+  -0.1709,0.0947, -0.1647,0.1022, -0.1578,0.109, -0.1498,0.1151, -0.139,0.1183, -0.127,0.1185,
+  -0.1151,0.1175, -0.1033,0.1156, -0.0916,0.1129, -0.0802,0.1093, -0.0691,0.1048,
+  -0.0585,0.0995, -0.0482,0.0935, -0.0384,0.0868, -0.0289,0.0796, -0.0197,0.072, -0.0109,0.064,
+  -0.0023,0.0558, 0.0061,0.0473, 0.0143,0.0386, 0.0224,0.0298, 0.0304,0.0209, 0.0384,0.0119,
+  0.0463,0.003, 0.0544,-0.0059, 0.0625,-0.0146, 0.0708,-0.0232, 0.0793,-0.0316, 0.088,-0.0397,
+  0.097,-0.0475, 0.1063,-0.0549, 0.1159,-0.0617, 0.1259,-0.068, 0.1363,-0.0735, 0.1472,-0.0782,
+  0.1585,-0.0817, 0.1702,-0.0841, 0.1821,-0.0852, 0.1941,-0.0852, 0.206,-0.0842,
+  0.2179,-0.0824, 0.2296,-0.0799, 0.241,-0.0765, 0.2521,-0.0722, 0.2628,-0.0669, 0.273,-0.0609,
+  0.2826,-0.0541, 0.2918,-0.0467, 0.3006,-0.0388, 0.3091,-0.0305, 0.3172,-0.0218,
+  0.3252,-0.0129, 0.3329,-0.0039, 0.3406,0.0054, 0.3481,0.0146, 0.3557,0.0239, 0.3633,0.0332,
+  0.371,0.0423, 0.3789,0.0512, 0.387,0.06, 0.3954,0.0684, 0.4042,0.0764, 0.4134,0.0839,
+  0.423,0.0909, 0.433,0.0973, 0.4435,0.103, 0.4544,0.108, 0.4656,0.1123, 0.477,0.1159,
+  0.4886,0.119
+];
+const LOGO_LOCAL = (()=>{ const p=[]; for(let i=0;i<SPINE.length;i+=2) p.push({x:SPINE[i], y:SPINE[i+1]}); return p; })();
+const WRATIO = 0.1148;   // median stroke width / mark width
+const logo = {scale:0, ox:0, oy:0, prog:0, vis:false};
+
+/* ═══════════ the dot ═══════════ */
+const dot = {x:0,y:0,px:0,py:0,s:0,sv:0,ang:0,vis:0,ring:0,ringT:0,r:0,rT:0};
+let anim=null, idle=false, nextIdle=0, busy=false;
+const eIO = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
+const eOut = t => 1-Math.pow(1-t,3);
+const eBack = t => 1 + 2.2*Math.pow(t-1,3) + 1.2*Math.pow(t-1,2);
+
+function arc(ax,ay,bx,by,h,n=44){
+  const p=[]; for(let i=0;i<=n;i++){const t=i/n;
+    p.push({x:ax+(bx-ax)*t, y:ay+(by-ay)*t-Math.sin(t*Math.PI)*h});} return p;
+}
+function travel(path,dur,opt={}){
+  anim = {t0:performance.now(), dur, path, prep:opt.prep||0, seg:opt.seg||null,
+          paint:!!opt.paint, rev:!!opt.rev, logo:!!opt.logo, ease:opt.ease||eIO, end:opt.end||null};
+}
+function hopIdle(){
+  travel(arc(dot.x,dot.y,dot.x,dot.y,dot.r*1.5,26), 430, {prep:110, ease:t=>t});
+  nextIdle = performance.now() + 1150 + Math.random()*700;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   THE TREE
+   rules, in order of how much they matter:
+   1  acyclic      every stroke starts on an existing stroke and ends in open
+                   space. nothing ever joins two existing points, so the
+                   drawing can never close a loop.
+   2  taper        each generation is 0.62 of its parent's width, floor 0.16
+   3  angle        22-44 deg off the parent, side alternates, 8 deg jitter
+   4  length       child runs 30-52 percent of the parent
+   5  bend         one arc per branch, never an S, bending away from the parent
+   6  light        every direction is pulled toward vertical by 0.22
+   7  spacing      twigs sit on the outer 65 percent of a parent, 0.13 apart
+   8  walking      the dot only ever travels along branches, never across
+   ═══════════════════════════════════════════════════════════ */
+let TREE = null, twigs = [], roots = [], rootsGrown = false;
+
+/* the mark is the root collar. everything below it runs the tree rules with
+   the light bias flipped to gravity, shorter steps, and one more fork, then
+   walks off the bottom edge instead of tapering to a tip. */
+function logoScreenPts(){
+  return LOGO_LOCAL.map(p => ({x: logo.ox+p.x*logo.scale, y: logo.oy+p.y*logo.scale}));
+}
+function rootStep(p, ang, len, w, depth, delay, LW){
+  if(roots.length > 68) return;
+  const side = Math.random()>0.5 ? 1 : -1;
+  const b = {x: p.x+Math.cos(ang)*len, y: p.y+Math.sin(ang)*len};
+  const w1 = Math.max(w*0.62, LW*0.10);
+  roots.push({pts:limb(p,b,len*rnd(0.07,0.18)*side,38), w0:w, w1,
+              prog:0, t0:performance.now()+delay, dur:RM?1:400+len*1.6, baked:false, p2d:null});
+
+  if(Math.random() < 0.55){                                   // hair root, stays in frame
+    const hs = -side, ha = ang + hs*(52+Math.random()*34)*Math.PI/180;
+    const hl = len*rnd(0.26,0.46);
+    roots.push({pts:limb(b,{x:b.x+Math.cos(ha)*hl, y:b.y+Math.sin(ha)*hl}, hl*rnd(0.10,0.26)*side, 24),
+                w0:w1*0.66, w1:Math.max(LW*0.07, w1*0.24),
+                prog:0, t0:performance.now()+delay+300, dur:RM?1:360, baked:false, p2d:null});
+  }
+  if(depth <= 0 || b.y > H+130) return;
+  const k = (b.y > H*0.95 || Math.random()>0.72) ? 1 : 2;
+  for(let j=0;j<k;j++){
+    const sd = k===2 ? (j===0?-1:1) : (Math.random()>0.5?1:-1);
+    const a = ang + sd*(16+Math.random()*28)*Math.PI/180;
+    let vx=Math.cos(a), vy=Math.sin(a)+0.30;                  // rule 6, flipped: gravity
+    rootStep(b, Math.atan2(vy,vx), len*rnd(0.62,0.86), w1, depth-1,
+             delay+240+Math.random()*170, LW);
+  }
+}
+function growRoots(){
+  if(roots.length || !logo.scale) return;
+  const lp = logoScreenPts(), LW = logo.scale*WRATIO;
+  const n = 5 + ((Math.random()*3)|0);
+  for(let i=0;i<n;i++){
+    const u = clamp(0.08 + (i/(n-1))*0.84 + rnd(-0.06,0.06), 0.04, 0.96);
+    const p = lp[Math.round(u*(lp.length-1))];
+    const lat = (u-0.5)*2;
+    const taproot = Math.abs(lat) < 0.34;
+    const ang = Math.atan2(1, lat*rnd(0.55,1.15));
+    rootStep(p, ang, taproot ? H*rnd(0.10,0.15) : H*rnd(0.055,0.10),
+             LW*rnd(0.40,0.58), 3, i*90 + rnd(0,120), LW);
+  }
+}
+
+function mkNode(x,y,parent){ return {x,y,parent,seg:null}; }
+function limb(a,b,bend,n=64){
+  const dx=b.x-a.x, dy=b.y-a.y, L=Math.hypot(dx,dy)||1, nx=-dy/L, ny=dx/L, p=[];
+  for(let i=0;i<=n;i++){const t=i/n, o=Math.sin(t*Math.PI)*bend;
+    p.push({x:a.x+dx*t+nx*o, y:a.y+dy*t+ny*o});}
+  return p;
+}
+function mkSeg(a,b,w0,w1,bend){
+  const pts = limb(a,b,bend);
+  const s = {a,b,pts,w0,w1,prog:0,drawn:false,used:[],p2d:null,
+             len:Math.hypot(b.x-a.x,b.y-a.y)};
+  b.seg = s; return s;
+}
+
+function growTree(){
+  twigs = [];
+  const baseY = H - Math.max(96, H*0.125) - SAB*0.7 - 4;
+  const lean = rnd(-1,1);
+  const base = mkNode(cx + lean*W*0.03, baseY, null);
+  const J1   = mkNode(base.x + rnd(-1,1)*W*0.05, H*0.70 + rnd(-16,16), base);
+  const J2   = mkNode(J1.x + rnd(-1,1)*W*0.06,  H*0.47 + rnd(-18,18), J1);
+
+  // Six tips, and which side each one lives on is fixed rather than random:
+  // the swipe that reaches a word has to mean the same thing on every visit.
+  // Only the jitter moves. Laid out so the four original words keep their
+  // cardinal swipes and the two newer ones take the diagonals.
+  const comm  = mkNode(clamp(cx + rnd(W*0.10,W*0.20), W*0.52, W*0.78),
+                       H*0.635 + rnd(-18,18), J1);
+  const spot  = mkNode(clamp(cx - rnd(W*0.10,W*0.20), W*0.20, W*0.46),
+                       H*0.665 + rnd(-18,18), J1);
+  const left  = mkNode(clamp(W*0.19 + rnd(-14,14), M+8, W*0.30),
+                       H*0.42 + rnd(-26,26), J2);
+  const right = mkNode(clamp(W*0.81 + rnd(-14,14), W*0.70, W-M-8),
+                       H*0.42 + rnd(-26,26), J2);
+  const cal   = mkNode(clamp(W*0.76 + rnd(-16,16), W*0.62, W-M-8),
+                       Math.max(H*0.265 + rnd(-18,18), 190), J2);
+  const crown = mkNode(clamp(cx + rnd(-1,1)*W*0.09, W*0.32, W*0.68),
+                       Math.max(H*0.175 + rnd(-14,14), 138), J2);
+
+  const bd = L => L * rnd(0.05,0.13) * (Math.random()>0.5?1:-1);
+  const segs = [
+    mkSeg(base,J1, SW*1.08, SW*0.88, bd(J1.y-base.y)),
+    mkSeg(J1,J2,   SW*0.86, SW*0.70, bd(J2.y-J1.y)),
+    mkSeg(J1,comm, SW*0.66, SW*0.40, bd(140)),
+    mkSeg(J1,spot, SW*0.62, SW*0.38, bd(140)*-1),
+    mkSeg(J2,left, SW*0.66, SW*0.38, bd(160)),
+    mkSeg(J2,right,SW*0.66, SW*0.38, bd(160)),
+    mkSeg(J2,cal,  SW*0.58, SW*0.34, bd(150)),
+    mkSeg(J2,crown,SW*0.70, SW*0.36, bd(180))
+  ];
+  TREE = {base, segs,
+          tips:{market:left, insta:crown, lecture:right, channel:comm, spot, calendar:cal}};
+}
+
+/* rule 3-7: a twig leaving a branch it can never rejoin */
+function sprout(seg){
+  if(twigs.length > 44) return;
+  let t = 0, tries = 0;
+  do { t = rnd(0.35,0.92); tries++; }
+  while(tries < 8 && seg.used.some(u => Math.abs(u-t) < 0.13));
+  if(seg.used.some(u => Math.abs(u-t) < 0.13)) return;
+  seg.used.push(t);
+
+  const i = Math.floor(t*(seg.pts.length-1));
+  const p = seg.pts[i], q = seg.pts[Math.min(i+4, seg.pts.length-1)];
+  let vx = q.x-p.x, vy = q.y-p.y;
+  const d = Math.hypot(vx,vy)||1; vx/=d; vy/=d;
+
+  const side = Math.random()>0.5 ? 1 : -1;
+  const a = (22 + Math.random()*22 + rnd(-8,8)) * Math.PI/180 * side;
+  let nx = vx*Math.cos(a) - vy*Math.sin(a), ny = vx*Math.sin(a) + vy*Math.cos(a);
+  ny -= 0.22; const nd = Math.hypot(nx,ny)||1; nx/=nd; ny/=nd;      // rule 6
+
+  const L = clamp(seg.len*rnd(0.30,0.52), 34, 190);
+  const b = {x: clamp(p.x+nx*L, M*0.5, W-M*0.5), y: clamp(p.y+ny*L, H*0.09, H-40)};
+  const w = seg.w0 + (seg.w1-seg.w0)*t;
+  twigs.push({pts:limb(p,b,L*rnd(0.08,0.20)*(-side),34),
+              w0:Math.max(w*0.62, SW*0.16), w1:Math.max(w*0.20, SW*0.09),
+              prog:0, t0:0, dur:RM?1:460, p2d:null});
+}
+
+/* ═══════════ tapered ink ═══════════ */
+function smoothInto(p, A, start){
+  const n = A.length;
+  if(start) p.moveTo(A[0].x, A[0].y); else p.lineTo(A[0].x, A[0].y);
+  for(let i=1;i<n-1;i++){
+    const mx=(A[i].x+A[i+1].x)/2, my=(A[i].y+A[i+1].y)/2;
+    p.quadraticCurveTo(A[i].x, A[i].y, mx, my);
+  }
+  if(n>1) p.quadraticCurveTo(A[n-2].x, A[n-2].y, A[n-1].x, A[n-1].y);
+}
+function ribbon(pts, w0, w1, upto){
+  const total = pts.length-1;
+  const n = upto===undefined ? pts.length : Math.max(2, Math.min(pts.length, upto));
+  const L=[], Rr=[];
+  for(let i=0;i<n;i++){
+    const a=pts[Math.max(0,i-1)], b=pts[Math.min(total,i+1)];
+    let dx=b.x-a.x, dy=b.y-a.y; const d=Math.hypot(dx,dy)||1; dx/=d; dy/=d;
+    const hw=(w0+(w1-w0)*(i/total))/2;
+    L.push({x:pts[i].x-dy*hw, y:pts[i].y+dx*hw});
+    Rr.push({x:pts[i].x+dy*hw, y:pts[i].y-dx*hw});
+  }
+  const p = new Path2D();
+  smoothInto(p, L, true);
+  const back=[]; for(let i=n-1;i>=0;i--) back.push(Rr[i]);
+  smoothInto(p, back, false);
+  p.closePath();
+  return {p, hw0:w0/2, hwE:(w0+(w1-w0)*((n-1)/total))/2, endPt:pts[n-1], startPt:pts[0]};
+}
+function inkStroke(o, w0, w1, color, prog){
+  const full = prog===undefined || prog>=1;
+  if(full && o.p2d){ ctx.fillStyle=color; ctx.fill(o.p2d); capDots(o, w0, w1, color, o.pts.length); return; }
+  const upto = full ? undefined : Math.max(2, Math.floor(prog*(o.pts.length-1))+1);
+  const r = ribbon(o.pts, w0, w1, upto);
+  if(full) o.p2d = r.p;
+  ctx.fillStyle = color; ctx.fill(r.p);
+  ctx.beginPath(); ctx.arc(r.startPt.x, r.startPt.y, r.hw0, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(r.endPt.x, r.endPt.y, r.hwE, 0, TAU); ctx.fill();
+}
+function bakeStroke(o, w0, w1, color){
+  const r = ribbon(o.pts, w0, w1);
+  sctx.fillStyle = color; sctx.fill(r.p);
+  sctx.beginPath(); sctx.arc(r.startPt.x, r.startPt.y, r.hw0, 0, TAU); sctx.fill();
+  sctx.beginPath(); sctx.arc(r.endPt.x, r.endPt.y, r.hwE, 0, TAU); sctx.fill();
+  o.baked = true; o.p2d = null;
+}
+function capDots(o, w0, w1, color, n){
+  ctx.fillStyle = color;
+  ctx.beginPath(); ctx.arc(o.pts[0].x, o.pts[0].y, w0/2, 0, TAU); ctx.fill();
+  ctx.beginPath(); ctx.arc(o.pts[o.pts.length-1].x, o.pts[o.pts.length-1].y, w1/2, 0, TAU); ctx.fill();
+}
+function drawLogo(){
+  ctx.save();
+  if(logo.prog < 1){
+    // The dot paints left to right and the spine's x is monotonic, so a moving
+    // vertical edge at the dot reveals exactly the ink it has laid. The straight
+    // edge sits under the dot, so it is never visible.
+    const i = Math.max(1, Math.round(logo.prog*(LOGO_LOCAL.length-1)));
+    const left = logo.ox - logo.scale;
+    ctx.beginPath();
+    ctx.rect(left, logo.oy - logo.scale, (logo.ox + LOGO_LOCAL[i].x*logo.scale) - left, logo.scale*2);
+    ctx.clip();
+  }
+  ctx.translate(logo.ox, logo.oy); ctx.scale(logo.scale, logo.scale);
+  ctx.fillStyle = BARK; ctx.fill(MARK_PATH);
+  ctx.restore();
+}
+
+/* ═══════════ walking the tree (rule 8) ═══════════ */
+function chainOf(n){ const c=[]; let k=n; while(k){ c.unshift(k); k=k.parent; } return c; }
+function route(from, to){
+  const A=chainOf(from), B=chainOf(to);
+  let i=0; while(i<A.length && i<B.length && A[i]===B[i]) i++;
+  const steps=[];
+  for(let k=A.length-1;k>=i;k--) steps.push({seg:A[k].seg, rev:true});
+  for(let k=i;k<B.length;k++)   steps.push({seg:B[k].seg, rev:false});
+  return steps.filter(s => s.seg);
+}
+let atNode = null, picked = null;
+function walk(steps, done){
+  if(!steps.length){ done(); return; }
+  const st = steps.shift(), seg = st.seg;
+  const path = st.rev ? seg.pts.slice().reverse() : seg.pts;
+  const fresh = !seg.drawn && !st.rev;
+  const dur = RM ? 1 : clamp(seg.len*1.9, 420, 1050);
+  travel(path, dur, {prep: 80, seg, paint: fresh, rev: st.rev, end:() => {
+    if(fresh){
+      seg.drawn = true; seg.prog = 1;
+      const k = 1 + ((Math.random()*2.4)|0);
+      for(let j=0;j<k;j++) setTimeout(()=>startTwig(sproutOn(seg)), RM?0:j*130);
+    } else if(Math.random() < 0.55){
+      const d = TREE.segs.filter(s=>s.drawn);
+      if(d.length) startTwig(sproutOn(pick1(d)));
+    }
+    walk(steps, done);
+  }});
+}
+function sproutOn(seg){ const before = twigs.length; sprout(seg); return twigs.length>before ? twigs[twigs.length-1] : null; }
+function startTwig(t){ if(t) t.t0 = performance.now(); }
+
+/* ═══════════ layout ═══════════ */
+function layout(){
+  DPR = Math.min(devicePixelRatio||1, 2);
+  W = innerWidth; H = innerHeight;
+  SAB = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sab')) || 0;
+  cv.width = stat.width = W*DPR; cv.height = stat.height = H*DPR;
+  ctx.setTransform(DPR,0,0,DPR,0,0); sctx.setTransform(DPR,0,0,DPR,0,0); sctx.clearRect(0,0,W,H);
+  cx = W/2; cy = H*0.46; lastW=W; lastH=H;
+  markW = Math.min(W*0.74, 360);
+  SW = markW*WRATIO; R = SW/2; M = Math.max(22, W*0.07);
+  if(phase === 'start'){ dot.x=cx; dot.y=cy; dot.r=R; dot.rT=R; logo.scale=markW; logo.ox=cx; logo.oy=cy; }
+  placeAbout();
+}
+function footerPose(){
+  const s = Math.min(markW*0.30, 130);
+  return {scale:s, ox:cx, oy:H - Math.max(96, H*0.125) - SAB*0.7};
+}
+
+const aboutEl = document.getElementById('about');
+function placeAbout(){
+  aboutEl.style.left = (M + R*2 + 12)+'px';
+  aboutEl.style.top  = Math.max(90, H*0.15)+'px';
+  aboutEl.style.width = Math.min(W - M*2 - R*2 - 12, 520)+'px';
+}
+function fillAbout(){
+  aboutEl.innerHTML='';
+  COPY[lang].about.split(' ').forEach((w,i)=>{
+    const s=document.createElement('span'); s.textContent=w+' ';
+    s.style.transitionDelay=(i*26)+'ms'; aboutEl.appendChild(s);
+  });
+}
+function aboutOrigin(){
+  const r=aboutEl.getBoundingClientRect();
+  const lh=parseFloat(getComputedStyle(aboutEl).lineHeight)||30;
+  return {x:r.left-R-4, y:r.top+lh*0.52};
+}
+
+/* ═══════════ menu ═══════════ */
+const menuEl = document.getElementById('menu');
+function buildMenu(){
+  menuEl.innerHTML='';
+  ITEMS.forEach(it=>{
+    const e=document.createElement('div'); e.className='item '+it.side;
+    e.innerHTML=`<div class="inner"><span class="w"></span><a class="u"></a></div>`;
+    const u=e.querySelector('.u');
+    // The panel item gets no href at all — an anchor navigates on click, and a
+    // preventDefault on pointerdown would not stop it. role/tabindex put the
+    // keyboard back.
+    if(it.panel){
+      u.setAttribute('role','button'); u.tabIndex=0;
+      u.addEventListener('pointerdown',ev=>{ ev.stopPropagation(); openCal(); });
+      u.addEventListener('keydown',ev=>{ if(ev.key==='Enter'||ev.key===' '){
+        ev.preventDefault(); ev.stopPropagation(); openCal(); } });
+    }
+    else { u.href=LINKS[it.key]; u.target='_blank'; u.rel='noopener'; }
+    e.querySelector('.inner').addEventListener('pointerdown',ev=>{ev.stopPropagation(); if(phase==='menu') go(it);});
+    it.el=e; it.node=TREE.tips[it.key]; menuEl.appendChild(e);
+  });
+  paintText(); placeMenu();
+}
+function placeMenu(){
+  if(!TREE) return;
+  ITEMS.forEach(it=>{
+    const e=it.el, n=TREE.tips[it.key]; if(!e) return;
+    it.node = n;
+    e.style.left=e.style.right='auto';
+    // Tips land wherever the tree grew them, so on a narrow screen a label can
+    // hang off the edge. Clamp each one into the margin: reading the word beats
+    // sitting exactly on its tip. Width includes the tag line, which is wider.
+    const w = e.offsetWidth;
+    if(it.side==='left'){ e.style.right=clamp(W-n.x+SW*0.5+14, M, Math.max(M, W-M-w))+'px'; e.style.top=(n.y-15)+'px'; }
+    if(it.side==='right'){ e.style.left=clamp(n.x+SW*0.5+14, M, Math.max(M, W-M-w))+'px';  e.style.top=(n.y-15)+'px'; }
+    if(it.side==='up' || it.side==='down'){
+      // up/down are a fixed-width centred box, so clamp the centre by the text width
+      const tw = e.firstElementChild ? e.firstElementChild.offsetWidth : 0;
+      e.style.left=clamp(n.x, M+tw/2, Math.max(M+tw/2, W-M-tw/2))+'px';
+      e.style.top=(it.side==='up' ? Math.max(66, n.y-SW-52) : n.y+SW*0.6+16)+'px';
+    }
+  });
+}
+function paintText(){
+  ITEMS.forEach(it=>{ if(!it.el) return;
+    it.el.querySelector('.w').textContent=it[lang];
+    it.el.querySelector('.u').textContent=it.tag; });
+  document.getElementById('idx').textContent=COPY[lang].idx;
+  const sh=document.getElementById('sheet'); sh.innerHTML='';
+  ITEMS.forEach(it=>{ const a=document.createElement('a');
+    if(it.panel){
+      a.setAttribute('role','button'); a.tabIndex=0;
+      a.addEventListener('click',ev=>{ ev.preventDefault(); closeSheet(); openCal(); });
+      a.addEventListener('keydown',ev=>{ if(ev.key==='Enter'||ev.key===' '){
+        ev.preventDefault(); ev.stopPropagation(); closeSheet(); openCal(); } });
+    }
+    else { a.href=LINKS[it.key]; a.target='_blank'; a.rel='noopener'; }
+    a.innerHTML=`<span>${it[lang]}</span><em>${it.tag.split(' · ')[0]}</em>`; sh.appendChild(a); });
+  fillCal();
+  if(phase==='aboutDone'){ fillAbout(); aboutEl.classList.add('go'); aboutEl.style.opacity=1; }
+  setHint();
+}
+
+/* ═══════════ the schedule ═══════════ */
+const calEl = document.getElementById('cal');
+// Dates are compared as plain ISO strings against today's local date, so an
+// event stays listed for the whole of its own day and drops off after it.
+function upcoming(){
+  const t = new Date(), today =
+    `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+  return EVENTS.filter(e => e.on >= today).sort((a,b) => a.on < b.on ? -1 : 1);
+}
+function fillCal(){
+  const c = COPY[lang], list = upcoming();
+  const fmt = iso => new Date(iso+'T00:00:00')
+    .toLocaleDateString(lang==='ua'?'uk-UA':'en-GB', {day:'numeric', month:'short'});
+  calEl.innerHTML = `<h3>${c.cal}</h3>` + (list.length
+    ? '<ul>' + list.map(e =>
+        `<li><b>${fmt(e.on)}${e.at?' · '+e.at:''}</b><span>${e[lang]||e.en}</span></li>`).join('') + '</ul>'
+    : `<p>${c.calNone} <a href="${LINKS.channel}" target="_blank" rel="noopener">${c.calGo}</a></p>`);
+}
+function openCal(){ fillCal(); calEl.classList.add('open'); }
+function closeCal(){ calEl.classList.remove('open'); }
+
+/* ═══════════ phases ═══════════ */
+let phase='start';
+const hintEl=document.getElementById('hint');
+function setHint(){
+  const c=COPY[lang], t={start:c.h0,logoDone:c.h1,aboutDone:c.h2,menu:c.h3}[phase];
+  if(t){ hintEl.textContent=t; hintEl.classList.add('vis'); } else hintEl.classList.remove('vis');
+}
+const wait=(ms,f)=>setTimeout(f, RM?0:ms);
+
+function goLogo(){
+  busy=true; idle=false; hintEl.classList.remove('vis');
+  const lp = LOGO_LOCAL.map(p=>({x:logo.ox+p.x*logo.scale, y:logo.oy+p.y*logo.scale}));
+  travel(arc(dot.x,dot.y,lp[0].x,lp[0].y,R*2.4,30),460,{end:()=>{
+    logo.vis=true;
+    travel(lp, RM?1:2100, {logo:true, end:()=>{
+      const tip=lp[lp.length-1];
+      travel(arc(tip.x,tip.y,tip.x-R*0.2,tip.y-R*2.6,R*3.4,26),430,{prep:100,end:()=>{
+        dot.ringT=1;
+        document.getElementById('tr').classList.add('vis','on');
+        phase='logoDone'; busy=false; idle=true; nextIdle=performance.now()+500; setHint();
+      }});
+    }});
+  }});
+}
+function goAbout(){
+  busy=true; idle=false; hintEl.classList.remove('vis');
+  const to=footerPose(), from={scale:logo.scale,ox:logo.ox,oy:logo.oy};
+  const t0=performance.now(), dur=RM?1:820;
+  (function pop(){ const p=clamp((performance.now()-t0)/dur,0,1), e=eBack(p);
+    logo.scale=from.scale+(to.scale-from.scale)*e;
+    logo.ox=from.ox+(to.ox-from.ox)*e; logo.oy=from.oy+(to.oy-from.oy)*e;
+    if(p<1) requestAnimationFrame(pop); })();
+  fillAbout(); aboutEl.style.opacity=1;
+  const o=aboutOrigin();
+  wait(180,()=>travel(arc(dot.x,dot.y,o.x,o.y,Math.min(180,H*0.2),50),760,{end:()=>{
+    aboutEl.classList.add('go');
+    wait(900,()=>{ phase='aboutDone'; busy=false; idle=true; nextIdle=performance.now()+400; setHint(); });
+  }}));
+}
+function goMenu(){
+  busy=true; idle=false; hintEl.classList.remove('vis');
+  growTree(); atNode = TREE.base;
+  const r=aboutEl.getBoundingClientRect();
+  travel(arc(dot.x,dot.y,dot.x+R,r.bottom+R*2.2,R*3,30),460,{prep:90,end:()=>{
+    aboutEl.classList.add('out');
+    wait(220,()=>travel(arc(dot.x,dot.y,TREE.base.x,TREE.base.y,Math.min(230,H*0.26),60),900,{end:()=>{
+      buildMenu();
+      ITEMS.forEach((it,i)=>wait(140+i*90,()=>it.el.classList.add('show')));
+      phase='menu'; busy=false; idle=true; nextIdle=performance.now()+600; setHint();
+    }}));
+  }});
+}
+function go(it){
+  if(busy || picked===it) return;
+  busy=true; idle=false; hintEl.classList.remove('vis');
+  if(picked) picked.el.classList.remove('pick');
+  picked=it;
+  if(!rootsGrown){ rootsGrown = true; growRoots(); }
+  const steps = route(atNode, it.node);
+  walk(steps, ()=>{
+    atNode = it.node; it.el.classList.add('pick');
+    busy=false; idle=true; nextIdle=performance.now()+400; setHint();
+  });
+}
+
+/* ═══════════ input ═══════════ */
+// Six words do not fit four directions, so nothing is hardcoded: a swipe is
+// matched to whichever tip sits closest to its angle. Angles are measured from
+// the centre of the tip cluster, not the tree base — every tip is above the
+// base, so base-relative angles would put all six in the top half. Measured
+// this way the original four keep their cardinal swipes and the two new ones
+// answer the diagonals.
+function pickByAngle(dx, dy){
+  const ns = ITEMS.map(it => TREE && TREE.tips[it.key]).filter(Boolean);
+  if(ns.length !== ITEMS.length) return null;
+  const c = {x: ns.reduce((s,n)=>s+n.x,0)/ns.length, y: ns.reduce((s,n)=>s+n.y,0)/ns.length};
+  const a = Math.atan2(dy, dx);
+  let best=null, bd=Infinity;
+  ITEMS.forEach((it,i)=>{
+    const t = Math.atan2(ns[i].y-c.y, ns[i].x-c.x);
+    const d = Math.abs(((t-a+Math.PI*3) % TAU) - Math.PI);
+    if(d < bd){ bd=d; best=it; }
+  });
+  return best;
+}
+function advance(v){
+  if(busy) return;
+  if(phase==='start') return goLogo();
+  if(phase==='logoDone') return goAbout();
+  if(phase==='aboutDone') return goMenu();
+  if(phase==='menu' && v){ const it=pickByAngle(v.x, v.y); if(it) go(it); }
+}
+let sx0=0,sy0=0,st=0;
+addEventListener('pointerdown',e=>{
+  if(calEl.classList.contains('open')){ closeCal(); return; }
+  if(sheet.classList.contains('open')){ closeSheet(); return; }
+  sx0=e.clientX; sy0=e.clientY; st=performance.now();
+});
+addEventListener('pointerup',e=>{
+  if(!st) return; const dx=e.clientX-sx0, dy=e.clientY-sy0, d=Math.hypot(dx,dy); st=0;
+  advance(d>34 ? {x:dx, y:dy} : null);
+});
+let wqx=0, wqy=0;
+addEventListener('wheel',e=>{
+  wqx += e.deltaX; wqy += e.deltaY;
+  if(Math.hypot(wqx,wqy) > 90){
+    const v = {x:wqx, y:wqy}; wqx=wqy=0;
+    advance(phase==='menu' ? v : null);
+  }
+},{passive:true});
+addEventListener('keydown',e=>{
+  // arrows are just unit vectors now; the angle match does the rest
+  const k={ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1}}[e.key];
+  if(k||e.key===' '||e.key==='Enter'){ e.preventDefault(); advance(k||null); }
+});
+const idxBtn=document.getElementById('idx'), sheet=document.getElementById('sheet');
+function closeSheet(){ sheet.classList.remove('open'); idxBtn.setAttribute('aria-expanded','false'); }
+idxBtn.addEventListener('pointerdown',e=>{ e.stopPropagation();
+  const o=!sheet.classList.contains('open');
+  sheet.classList.toggle('open',o); idxBtn.setAttribute('aria-expanded',o); });
+sheet.addEventListener('pointerdown',e=>e.stopPropagation());
+calEl.addEventListener('pointerdown',e=>e.stopPropagation());
+document.querySelectorAll('.lang button').forEach(b=>{
+  b.addEventListener('pointerdown',e=>{ e.stopPropagation(); lang=b.id;
+    document.querySelectorAll('.lang button').forEach(x=>x.classList.toggle('act',x===b));
+    paintText(); });
+});
+
+/* ═══════════ frame ═══════════ */
+function frame(now){
+  ctx.clearRect(0,0,W,H);
+  if(logo.vis) drawLogo();
+  ctx.drawImage(stat, 0, 0, W, H);
+
+  for(const r of roots){
+    if(r.baked || now < r.t0) continue;
+    r.prog = clamp((now-r.t0)/r.dur, 0, 1);
+    inkStroke(r, r.w0, r.w1, BARK, eOut(r.prog));
+    if(r.prog >= 1) bakeStroke(r, r.w0, r.w1, BARK);
+  }
+  if(TREE){
+    for(const s of TREE.segs){
+      if(s.baked || s.prog<=0) continue;
+      inkStroke(s, s.w0, s.w1, INK, s.prog);
+      if(s.prog >= 1 && s.drawn) bakeStroke(s, s.w0, s.w1, INK);
+    }
+    for(const t of twigs){
+      if(t.baked || !t.t0) continue;
+      t.prog = clamp((now-t.t0)/t.dur,0,1);
+      inkStroke(t, t.w0, t.w1, INK, eOut(t.prog));
+      if(t.prog >= 1) bakeStroke(t, t.w0, t.w1, INK);
+    }
+  }
+
+  dot.px=dot.x; dot.py=dot.y;
+  if(anim){
+    const el=now-anim.t0;
+    if(el<anim.prep){ dot.s=0.34*(el/anim.prep); dot.ang=0; }
+    else{
+      const p=clamp((el-anim.prep)/anim.dur,0,1), e=anim.ease(p);
+      const f=e*(anim.path.length-1), i=Math.floor(f), fr=f-i;
+      const a=anim.path[i], b=anim.path[Math.min(i+1,anim.path.length-1)];
+      dot.x=a.x+(b.x-a.x)*fr; dot.y=a.y+(b.y-a.y)*fr;
+      if(anim.logo) logo.prog=e;
+      if(anim.paint) anim.seg.prog=e;
+      if(anim.seg){
+        const sg=anim.seg, u=anim.rev?1-e:e;
+        dot.rT = clamp((sg.w0+(sg.w1-sg.w0)*u)/2*1.14, R*0.58, R*1.2);
+      }
+      const vx=dot.x-dot.px, vy=dot.y-dot.py, sp=Math.hypot(vx,vy);
+      if(sp>0.35){ dot.ang=Math.atan2(vy,vx); dot.s=clamp(sp*0.016,0,0.5); }
+      if(p>=1){ const end=anim.end; anim=null; dot.ang=0; dot.s=0.40; dot.sv=0; if(end) end(); }
+    }
+  }else{
+    dot.sv += (-dot.s*0.26 - dot.sv*0.24); dot.s += dot.sv;
+    if(idle && !busy && now>nextIdle) hopIdle();
+  }
+
+  if(dot.vis<1) dot.vis=clamp(dot.vis+0.035,0,1);
+  dot.ring += (dot.ringT-dot.ring)*0.07;
+  dot.r += (dot.rT-dot.r)*0.10;
+  const s=clamp(dot.s,-0.6,0.9);
+  const rr=dot.r*(dot.vis<1?Math.max(0,eBack(dot.vis)):1);
+  const rx=rr*(1+s*0.55), ry=rr/(1+s*0.55);
+  ctx.save(); ctx.translate(dot.x,dot.y); ctx.rotate(dot.ang);
+  if(dot.ring>0.01){ const g=4.2*dot.ring;
+    ctx.beginPath(); ctx.ellipse(0,0,rx+g,ry+g,0,0,TAU);
+    ctx.globalAlpha=dot.ring; ctx.fillStyle='#fff'; ctx.fill(); ctx.globalAlpha=1; }
+  ctx.beginPath(); ctx.ellipse(0,0,rx,ry,0,0,TAU);
+  ctx.fillStyle=BARK; ctx.fill();
+  ctx.restore();
+
+  requestAnimationFrame(frame);
+}
+
+function rescaleTree(kx,ky,kw){
+  if(!TREE) return;
+  const mv = a => a.forEach(q => { q.x*=kx; q.y*=ky; });
+  [TREE.base, ...TREE.segs.map(s=>s.b)].forEach(n => { n.x*=kx; n.y*=ky; });
+  TREE.segs.forEach(s => { mv(s.pts); s.w0*=kw; s.w1*=kw; s.p2d=null; s.baked=false;
+    s.len=Math.hypot(s.b.x-s.a.x, s.b.y-s.a.y); });
+  twigs.forEach(t => { mv(t.pts); t.w0*=kw; t.w1*=kw; t.p2d=null; t.baked=false; });
+}
+function rescaleRoots(kx,ky,kw){
+  roots.forEach(r => { r.pts.forEach(q=>{ q.x*=kx; q.y*=ky; });
+    r.w0*=kw; r.w1*=kw; r.p2d=null; r.baked=false; });
+}
+let lastW=0, lastH=0;
+let rt; addEventListener('resize',()=>{
+  // iOS collapses the address bar and fires resize with a height-only delta.
+  // Relaying out there would regenerate the tree mid-session.
+  if(TOUCH && innerWidth===lastW && Math.abs(innerHeight-lastH) < 130) return;
+  clearTimeout(rt); rt=setTimeout(()=>{
+  const post = phase!=='start', oW=W, oH=H, oSW=SW;
+  layout();
+  rescaleTree(W/oW, H/oH, SW/oSW); rescaleRoots(W/oW, H/oH, SW/oSW);
+  if(post && logo.vis){ const f=footerPose(); logo.scale=f.scale; logo.ox=f.ox; logo.oy=f.oy; }
+  if(phase==='menu') placeMenu();
+  dot.x=clamp(dot.x,R+8,W-R-8); dot.y=clamp(dot.y,R+8,H-R-8);
+},200); });
+lastW=innerWidth; lastH=innerHeight;
+
+layout(); dot.r=R; dot.rT=R; paintText(); setHint();
+idle=true; nextIdle=performance.now()+900;
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

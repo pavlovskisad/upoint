@@ -1,0 +1,6 @@
+.vercel
+.DS_Store
+._*
+__MACOSX/
+node_modules/
+*.zip
