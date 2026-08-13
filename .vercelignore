@@ -1,0 +1,9 @@
+# Keep the brand source in git for handoff, but do not publish it — everything
+# in the repo root is otherwise served as a static file, and the .ai is a 1.5MB
+# editable original of the logo.
+*.ai
+*.zip
+
+# Docs are for whoever maintains this, not for visitors.
+CLAUDE.md
+README.md
