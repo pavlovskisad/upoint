@@ -145,11 +145,16 @@ The four original words keep their cardinal swipes; the two new ones answer the 
 Arrow keys cover the four cardinals only — the other two are a tap on the word or the Index,
 which is one more reason Index is non-negotiable.
 
-**Label placement.** A label is as wide as its tag line, and `telegram · lectorium` is much
-wider than `talks`. Clamping the whole element into the margin therefore dragged the word off
-its branch and in against the trunk. `placeMenu()` now anchors a label that will not fit to
-the outer margin and flips its alignment instead, so the word stays out at its own side and
-the long tag runs inward under it.
+**Label placement.** A word has to read as belonging to its branch, so `placeMenu()` puts it
+on its tip: beside the tip when there is room outboard, otherwise just above it. It never
+slides a label to the margin — that was tried, and a label parked at the edge while its
+branch sat 150px away read as unrelated to the tree.
+
+What made that hard is that the label used to be as wide as its **tag line**, and
+`telegram · lectorium` is far wider than `talks`, so fitting the tag dragged the word off its
+branch. The tag is now `position:absolute`, out of flow: a label measures the width of its
+word alone, and the tag runs toward the middle of the screen (`inL` / `inR`), where there is
+always room for it. Only the word has to fit anywhere near its tip.
 
 **Back to top.** The sequence only ran forwards, so the tree was a dead end short of a reload.
 `restart()` clears what was grown and returns to bare paper; the control only appears in

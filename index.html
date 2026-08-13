@@ -49,19 +49,18 @@ canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
 .item{position:absolute;opacity:0;transform:translateY(10px);
   transition:opacity .5s ease,transform .5s cubic-bezier(.2,.9,.25,1)}
 .item.show{opacity:1;transform:none}
-.item .inner{display:inline-block;pointer-events:auto;cursor:pointer;padding:7px 5px}
+.item .inner{position:relative;display:inline-block;pointer-events:auto;cursor:pointer;padding:7px 5px}
 .item .w{display:inline-block;font-size:clamp(18px,5vw,28px);font-weight:600;letter-spacing:-.03em;
   line-height:1;color:rgba(0,0,0,.26);transition:color .3s ease}
 .item.pick .w{color:var(--ink)}
-.item .u{display:block;margin-top:8px;font-size:10px;font-weight:700;letter-spacing:.14em;
+.item .u{position:absolute;top:100%;margin-top:2px;font-size:10px;font-weight:700;letter-spacing:.14em;
   text-transform:uppercase;color:var(--deep);text-decoration:none;white-space:nowrap;
   opacity:0;transform:translateY(-4px);pointer-events:none;
   transition:opacity .35s ease .08s,transform .35s ease .08s}
+.item .u.inL{left:5px}
+.item .u.inR{right:5px}
 .item.pick .u{opacity:1;transform:none;pointer-events:auto}
 .item .u:hover{color:var(--ink)}
-.item.up,.item.down{text-align:center;width:64vw;margin-left:-32vw}
-.item.left{text-align:right}
-.item.right{text-align:left}
 
 .hud{position:absolute;opacity:0;transition:opacity .6s ease}
 .hud.vis{opacity:1}
@@ -538,41 +537,23 @@ function placeMenu(){
     const e=it.el, n=TREE.tips[it.key]; if(!e) return;
     it.node = n;
     e.style.left=e.style.right='auto';
-    // Tips land wherever the tree grew them, so on a narrow screen a label can
-    // hang off the edge. When it will not fit, anchor it to the outer margin and
-    // flip its alignment rather than sliding it inward — the element is as wide
-    // as its tag line ("telegram · lectorium"), so sliding drags the word away
-    // from its branch and in against the trunk.
-    e.style.textAlign='';
-    const w = e.offsetWidth, fits = v => v <= W-M-w;
-    if(it.side==='left' || it.side==='right'){
-      const L = it.side==='left';
-      // distance from the edge the label hangs off
-      const want = (L ? W-n.x : n.x) + SW*0.5 + 14;
-      if(fits(want)){                                      // room beside the tip
-        e.style[L?'right':'left'] = want+'px';
-        e.style.top = (n.y-15)+'px';
-      } else {
-        // No room: anchor to the outer margin and flip the alignment, rather
-        // than sliding inward — the element is as wide as its tag line, and
-        // sliding drags the word off its branch and in against the trunk.
-        e.style[L?'left':'right'] = M+'px';
-        e.style.textAlign = L ? 'left' : 'right';
-        // Some tips sit too close to the edge for any label to clear them; the
-        // word would then lie across its own branch. Lift those above it, and
-        // only those — measured on the word, since the tag sits on its own line
-        // and is much the wider of the two.
-        const ww = e.querySelector('.w').offsetWidth + 11;
-        const hits = L ? M+ww > n.x-SW*0.5 : W-M-ww < n.x+SW*0.5;
-        e.style.top = (hits ? Math.max(66, n.y-SW-46) : n.y-15)+'px';
-      }
+    // The label is only as wide as its word — the tag line is out of flow — so
+    // it can sit on its tip instead of being shoved around to make room for
+    // text that is not even visible until the word is picked.
+    const w = e.offsetWidth, gap = SW*0.5 + 12;
+    // the tag runs toward the middle of the screen, where there is always room
+    const u = e.querySelector('.u');
+    u.classList.remove('inL','inR'); u.classList.add(n.x < W/2 ? 'inL' : 'inR');
+    let x, y = n.y-15;
+    if(it.side==='left'  && n.x-gap-w >= M)   x = n.x-gap-w;   // beside, outboard
+    else if(it.side==='right' && n.x+gap+w <= W-M) x = n.x+gap;
+    else {
+      // No room outboard — sit just above the tip rather than sliding in
+      // against the trunk. Still reads as belonging to that branch.
+      x = clamp(n.x-w/2, M, Math.max(M, W-M-w));
+      y = Math.max(62, n.y-SW-40);
     }
-    if(it.side==='up' || it.side==='down'){
-      // up/down are a fixed-width centred box, so clamp the centre by the text width
-      const tw = e.firstElementChild ? e.firstElementChild.offsetWidth : 0;
-      e.style.left=clamp(n.x, M+tw/2, Math.max(M+tw/2, W-M-tw/2))+'px';
-      e.style.top=(it.side==='up' ? Math.max(66, n.y-SW-52) : n.y+SW*0.6+16)+'px';
-    }
+    e.style.left = x+'px'; e.style.top = y+'px';
   });
 }
 function paintText(){
