@@ -15,9 +15,11 @@ Static site, zero build. On Vercel: import the repo, framework preset **Other**,
 build command and output directory empty. `vercel.json` sets the cache headers; everything
 else is default.
 
-The one thing to change after attaching a custom domain: `og:url`, `og:image` and the
-canonical `<link>` in `index.html` are absolute URLs pointing at `upoint.club`.
-Link previews break silently if they point at the wrong host.
+`og:url`, `og:image` and the canonical `<link>` in `index.html` are absolute URLs — they have
+to be, because scrapers do not resolve a relative `og:image` — and they point at
+`https://www.upoint.club/`. That is the host Vercel actually serves: the apex `upoint.club`
+308-redirects to `www`. If you make the apex primary in Vercel instead, change these three
+lines to match, or link previews chase a redirect for no reason.
 
 ```
 index.html            the whole site
