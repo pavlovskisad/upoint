@@ -59,9 +59,9 @@ them. Yellow is what grew: trunk, branches, twigs. Nothing else gets a colour.
 |Beat                    |Colour                    |
 |------------------------|--------------------------|
 |opening, before any tap  |`GPS_RGB` — map-pin blue |
-|the tap, the beat after it, and the whole hop|`INK_RGB` — yellow, snapped, not eased|
-|landed on the mark's left tip|morphs to `BARK_RGB` — brown|
-|painting the mark        |`BARK_RGB` — brown       |
+|the tap, the beat after it, the hop, and the landing|`INK_RGB` — yellow, snapped, not eased|
+|the first stretch of the stroke|morphs to `BARK_RGB` — brown, while moving|
+|the rest of the mark     |`BARK_RGB` — brown       |
 |off the mark, through about, down to the root|`INK_RGB` — yellow|
 |on the tree              |`BARK_RGB` — brown       |
 
@@ -143,12 +143,19 @@ brush fixed *that* but cut the corners, as above. The disc chain still starts be
 spine point so the brush does not eat the mark's angled left cut, and at `logo.prog >= 1`
 there is no clip and the outline is exact.
 
-**The nib drowns in its own line.** `dot.sub` fades it out just after the stroke starts and
-back in near the end, driven off `logo.prog` rather than a timer so it cannot drift out of
-step with the paint. It surfaces briskly (`0.24` per frame): while part-transparent the nib
-overhangs the stroke onto bare paper and reads as a pale smudge, so that phase wants to be
-short. Nothing else depends on the dot being visible — the reveal already ends in a disc the
-width of the stroke, so with the nib gone the line simply ends in a clean round cap.
+**The nib drowns in its own line.** `dot.sub` sinks it between `logo.prog` `0.22` and `0.80` —
+off the paint's own progress, not a timer, so it cannot drift out of step — leaving the middle
+of the stroke to draw itself.
+
+It sinks by **shrinking, not fading**. At `R` the nib is 1.15× the stroke's half-width, so it
+shows; at half that it is 0.58× and sits entirely inside the ink, hidden by being narrower
+than the line while staying fully opaque. Fading was tried first and is worse: a
+part-transparent nib overhangs the stroke onto bare paper and reads as a pale smudge, which
+forces the dive to be quick to hide it. Shrinking has no such artefact, so it can take as long
+as it likes — `0.07` per frame, about two thirds of a second each way.
+
+Nothing else depends on the nib being visible: the reveal already ends in a disc the width of
+the stroke, so with the nib sunk the line simply ends in a clean round cap.
 
 Sizing the nib itself matters too: it is plain `R` while painting. It was briefly `R*1.18`, to
 cover a straight cut that no longer exists, and at that size it is 36% wider than the stroke
