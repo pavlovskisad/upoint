@@ -50,7 +50,7 @@ canvas{position:fixed;inset:0;width:100%;height:100%;touch-action:none}
   transition:opacity .5s ease,transform .5s cubic-bezier(.2,.9,.25,1)}
 .item.show{opacity:1;transform:none}
 .item .inner{display:inline-block;pointer-events:auto;cursor:pointer;padding:7px 5px}
-.item .w{display:block;font-size:clamp(18px,5vw,28px);font-weight:600;letter-spacing:-.03em;
+.item .w{display:inline-block;font-size:clamp(18px,5vw,28px);font-weight:600;letter-spacing:-.03em;
   line-height:1;color:rgba(0,0,0,.26);transition:color .3s ease}
 .item.pick .w{color:var(--ink)}
 .item .u{display:block;margin-top:8px;font-size:10px;font-weight:700;letter-spacing:.14em;
@@ -125,11 +125,6 @@ button{font:inherit;background:none;border:0;color:inherit;cursor:pointer}
 <script>
 (() => {
 const RM = matchMedia('(prefers-reduced-motion: reduce)').matches;
-// EXPERIMENT, opt-in via ?jump — the dot leaps between tips instead of walking
-// the branches, and the branches paint themselves on their own clock. Rips out
-// rule 2 in CLAUDE.md §5 and hands the drawing to the tree instead of the dot.
-// Either delete this and goJump(), or make it the default and delete walk().
-const JUMP = /[?&]jump\b/.test(location.search);
 const TOUCH = matchMedia('(hover: none)').matches;
 const TAU = Math.PI*2;
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
@@ -140,16 +135,15 @@ const pick1=a=>a[(Math.random()*a.length)|0];
 const LINKS = {
   market:'https://t.me/andrrit2', insta:'https://www.instagram.com/upointvienna',
   lecture:'https://t.me/Upointlecture', channel:'https://t.me/upvienna',
-  // PLACEHOLDER — stands in for the Google Maps place link, which the club has
-  // not supplied yet. Do not launch on this: "spot" pointing at Instagram is a
-  // dead end for someone trying to find the door.
-  spot:'https://www.instagram.com/upointvienna'
+  // A Maps search on the address rather than a place link — no place ID was
+  // given, and a search resolves correctly from any country and any app.
+  spot:'https://www.google.com/maps/search/?api=1&query=Bernardgasse%207%2F4%2C%20Wien'
 };
 // `side` is where the label sits, not how you get there — a swipe picks the tip
 // nearest its own angle (see pickByAngle). `panel` opens the schedule in-page.
 const ITEMS = [
   {side:'left',  key:'market',   en:'things',      ua:'речі',      tag:'telegram · market'},
-  {side:'left',  key:'spot',     en:'spot',        ua:'місце',     tag:'google maps'},
+  {side:'left',  key:'spot',     en:'spot',        ua:'місце',     tag:'Bernardgasse 7/4, Wien'},
   {side:'up',    key:'insta',    en:'experiences', ua:'враження',  tag:'instagram'},
   {side:'right', key:'calendar', en:'calendar',    ua:'афіша',     tag:'what is on', panel:true},
   {side:'right', key:'lecture',  en:'talks',       ua:'розмови',   tag:'telegram · lectorium'},
@@ -227,8 +221,8 @@ function arc(ax,ay,bx,by,h,n=44){
     p.push({x:ax+(bx-ax)*t, y:ay+(by-ay)*t-Math.sin(t*Math.PI)*h});} return p;
 }
 function travel(path,dur,opt={}){
-  anim = {t0:performance.now(), dur, path, prep:opt.prep||0, seg:opt.seg||null,
-          paint:!!opt.paint, rev:!!opt.rev, logo:!!opt.logo, ease:opt.ease||eIO, end:opt.end||null};
+  anim = {t0:performance.now(), dur, path, prep:opt.prep||0,
+          logo:!!opt.logo, ease:opt.ease||eIO, end:opt.end||null};
 }
 function hopIdle(){
   travel(arc(dot.x,dot.y,dot.x,dot.y,dot.r*1.5,26), 430, {prep:110, ease:t=>t});
@@ -329,7 +323,7 @@ function growTree(){
                        H*0.665 + rnd(-18,18), J1);
   const left  = mkNode(clamp(W*0.19 + rnd(-14,14), M+8, W*0.30),
                        H*0.42 + rnd(-26,26), J2);
-  const right = mkNode(clamp(W*0.81 + rnd(-14,14), W*0.70, W-M-8),
+  const right = mkNode(clamp(W*0.83 + rnd(-12,12), W*0.78, W-M-8),
                        H*0.42 + rnd(-26,26), J2);
   const cal   = mkNode(clamp(W*0.76 + rnd(-16,16), W*0.62, W-M-8),
                        Math.max(H*0.265 + rnd(-18,18), 190), J2);
@@ -430,19 +424,38 @@ function capDots(o, w0, w1, color, n){
 }
 function drawLogo(){
   ctx.save();
-  if(logo.prog < 1){
-    // The dot paints left to right and the spine's x is monotonic, so a moving
-    // vertical edge at the dot reveals exactly the ink it has laid. The straight
-    // edge sits under the dot, so it is never visible.
-    const i = Math.max(1, Math.round(logo.prog*(LOGO_LOCAL.length-1)));
-    const left = logo.ox - logo.scale;
-    ctx.beginPath();
-    ctx.rect(left, logo.oy - logo.scale, (logo.ox + LOGO_LOCAL[i].x*logo.scale) - left, logo.scale*2);
-    ctx.clip();
-  }
+  if(logo.prog < 1) clipPainted();
   ctx.translate(logo.ox, logo.oy); ctx.scale(logo.scale, logo.scale);
   ctx.fillStyle = BARK; ctx.fill(MARK_PATH);
   ctx.restore();
+}
+/* The reveal is the area a brush has actually swept: everything within a brush
+   radius of the spine so far, then squared off across the stroke at the dot.
+   It used to be a vertical curtain, which crosses the steep parts of the mark
+   at a shallow angle and drops a whole section in at once, so ink showed up
+   ahead of the dot. Both clips are needed — the discs alone bulge past the dot,
+   the square cut alone reveals unrelated parts of the mark that happen to fall
+   behind the same line. */
+function clipPainted(){
+  const S = logo.scale, n = LOGO_LOCAL.length;
+  const i = Math.max(1, Math.round(logo.prog*(n-1)));
+  const px = k => logo.ox + LOGO_LOCAL[k].x*S, py = k => logo.oy + LOGO_LOCAL[k].y*S;
+  const r = S*0.12;                       // clears half the mark at its widest
+  ctx.beginPath();
+  // start behind the first point, so the round brush does not eat the angled
+  // cut the mark really has at its left end
+  const bx = px(0)-(px(1)-px(0))*8, by = py(0)-(py(1)-py(0))*8;
+  ctx.moveTo(bx+r, by); ctx.arc(bx, by, r, 0, TAU);
+  for(let k=0;k<=i;k++){ ctx.moveTo(px(k)+r, py(k)); ctx.arc(px(k), py(k), r, 0, TAU); }
+  ctx.clip();
+  const tx=px(i)-px(i-1), ty=py(i)-py(i-1), L=Math.hypot(tx,ty)||1;
+  const ux=tx/L, uy=ty/L, D=S*1.6;        // successive clips intersect
+  ctx.beginPath();
+  ctx.moveTo(px(i)-uy*D,       py(i)+ux*D);
+  ctx.lineTo(px(i)+uy*D,       py(i)-ux*D);
+  ctx.lineTo(px(i)+uy*D-ux*D,  py(i)-ux*D-uy*D);
+  ctx.lineTo(px(i)-uy*D-ux*D,  py(i)+ux*D-uy*D);
+  ctx.closePath(); ctx.clip();
 }
 
 /* ═══════════ walking the tree (rule 8) ═══════════ */
@@ -456,24 +469,6 @@ function route(from, to){
   return steps.filter(s => s.seg);
 }
 let atNode = null, picked = null;
-function walk(steps, done){
-  if(!steps.length){ done(); return; }
-  const st = steps.shift(), seg = st.seg;
-  const path = st.rev ? seg.pts.slice().reverse() : seg.pts;
-  const fresh = !seg.drawn && !st.rev;
-  const dur = RM ? 1 : clamp(seg.len*1.9, 420, 1050);
-  travel(path, dur, {prep: 80, seg, paint: fresh, rev: st.rev, end:() => {
-    if(fresh){
-      seg.drawn = true; seg.prog = 1;
-      const k = 1 + ((Math.random()*2.4)|0);
-      for(let j=0;j<k;j++) setTimeout(()=>startTwig(sproutOn(seg)), RM?0:j*130);
-    } else if(Math.random() < 0.55){
-      const d = TREE.segs.filter(s=>s.drawn);
-      if(d.length) startTwig(sproutOn(pick1(d)));
-    }
-    walk(steps, done);
-  }});
-}
 function sproutOn(seg){ const before = twigs.length; sprout(seg); return twigs.length>before ? twigs[twigs.length-1] : null; }
 function startTwig(t){ if(t) t.t0 = performance.now(); }
 
@@ -544,11 +539,34 @@ function placeMenu(){
     it.node = n;
     e.style.left=e.style.right='auto';
     // Tips land wherever the tree grew them, so on a narrow screen a label can
-    // hang off the edge. Clamp each one into the margin: reading the word beats
-    // sitting exactly on its tip. Width includes the tag line, which is wider.
-    const w = e.offsetWidth;
-    if(it.side==='left'){ e.style.right=clamp(W-n.x+SW*0.5+14, M, Math.max(M, W-M-w))+'px'; e.style.top=(n.y-15)+'px'; }
-    if(it.side==='right'){ e.style.left=clamp(n.x+SW*0.5+14, M, Math.max(M, W-M-w))+'px';  e.style.top=(n.y-15)+'px'; }
+    // hang off the edge. When it will not fit, anchor it to the outer margin and
+    // flip its alignment rather than sliding it inward — the element is as wide
+    // as its tag line ("telegram · lectorium"), so sliding drags the word away
+    // from its branch and in against the trunk.
+    e.style.textAlign='';
+    const w = e.offsetWidth, fits = v => v <= W-M-w;
+    if(it.side==='left' || it.side==='right'){
+      const L = it.side==='left';
+      // distance from the edge the label hangs off
+      const want = (L ? W-n.x : n.x) + SW*0.5 + 14;
+      if(fits(want)){                                      // room beside the tip
+        e.style[L?'right':'left'] = want+'px';
+        e.style.top = (n.y-15)+'px';
+      } else {
+        // No room: anchor to the outer margin and flip the alignment, rather
+        // than sliding inward — the element is as wide as its tag line, and
+        // sliding drags the word off its branch and in against the trunk.
+        e.style[L?'left':'right'] = M+'px';
+        e.style.textAlign = L ? 'left' : 'right';
+        // Some tips sit too close to the edge for any label to clear them; the
+        // word would then lie across its own branch. Lift those above it, and
+        // only those — measured on the word, since the tag sits on its own line
+        // and is much the wider of the two.
+        const ww = e.querySelector('.w').offsetWidth + 11;
+        const hits = L ? M+ww > n.x-SW*0.5 : W-M-ww < n.x+SW*0.5;
+        e.style.top = (hits ? Math.max(66, n.y-SW-46) : n.y-15)+'px';
+      }
+    }
     if(it.side==='up' || it.side==='down'){
       // up/down are a fixed-width centred box, so clamp the centre by the text width
       const tw = e.firstElementChild ? e.firstElementChild.offsetWidth : 0;
@@ -614,7 +632,12 @@ function goLogo(){
   const lp = LOGO_LOCAL.map(p=>({x:logo.ox+p.x*logo.scale, y:logo.oy+p.y*logo.scale}));
   travel(arc(dot.x,dot.y,lp[0].x,lp[0].y,R*2.4,30),460,{end:()=>{
     logo.vis=true;
+    // While painting, the dot is the nib: the reveal is cut square across the
+    // stroke at its centre, and the mark runs wider than the median WRATIO in
+    // places, so a dot of exactly R leaves a hairline of that cut showing.
+    dot.rT = R*1.18;
     travel(lp, RM?1:2100, {logo:true, end:()=>{
+      dot.rT = R;
       const tip=lp[lp.length-1];
       travel(arc(tip.x,tip.y,tip.x-R*0.2,tip.y-R*2.6,R*3.4,26),430,{prep:100,end:()=>{
         dot.ringT=1;
@@ -662,19 +685,18 @@ function go(it){
     atNode = it.node; it.el.classList.add('pick');
     busy=false; idle=true; nextIdle=performance.now()+400; setHint();
   };
-  if(JUMP) return goJump(it, arrive);
-  walk(route(atNode, it.node), arrive);
+  goJump(it, arrive);
 }
 
-/* The ?jump experiment. The route still decides which branches exist — rule 1
-   holds, nothing new joins two existing points — but the retrace is dropped and
-   the dot flies straight to the tip while the branches draw themselves. */
+/* The route still decides which branches exist — rule 1 holds, nothing joins
+   two existing points — but the dot no longer traverses them. It flies to the
+   tip while the branches draw themselves. */
 function goJump(it, done){
   const steps = route(atNode, it.node);
   const fresh = steps.filter(s => !s.rev && !s.seg.drawn).map(s => s.seg);
-  // walk() sprouts a twig on ~55% of retraced segments. Jumping skips the
-  // retrace, so without this the tree fills in visibly thinner and the two
-  // modes would differ in density as well as motion.
+  // Retraced segments used to sprout a twig ~55% of the time as the dot walked
+  // back over them. Nothing retraces now, so sprout on the steps that would
+  // have been retraced — without it the tree fills in visibly thinner.
   steps.filter(s => s.rev).forEach((_, i) => {
     if(Math.random() >= 0.55) return;
     setTimeout(()=>{ const d = TREE.segs.filter(s=>s.drawn);
@@ -838,11 +860,6 @@ function frame(now){
       const a=anim.path[i], b=anim.path[Math.min(i+1,anim.path.length-1)];
       dot.x=a.x+(b.x-a.x)*fr; dot.y=a.y+(b.y-a.y)*fr;
       if(anim.logo) logo.prog=e;
-      if(anim.paint) anim.seg.prog=e;
-      if(anim.seg){
-        const sg=anim.seg, u=anim.rev?1-e:e;
-        dot.rT = clamp((sg.w0+(sg.w1-sg.w0)*u)/2*1.14, R*0.58, R*1.2);
-      }
       const vx=dot.x-dot.px, vy=dot.y-dot.py, sp=Math.hypot(vx,vy);
       if(sp>0.35){ dot.ang=Math.atan2(vy,vx); dot.s=clamp(sp*0.016,0,0.5); }
       if(p>=1){ const end=anim.end; anim=null; dot.ang=0; dot.s=0.40; dot.sv=0; if(end) end(); }

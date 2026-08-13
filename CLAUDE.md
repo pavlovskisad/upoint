@@ -19,7 +19,7 @@ Ukrainian, and an audience much wider than the founding crowd. They are repositi
 |Word (EN / UA)        |Goes to          |URL                                     |
 |----------------------|-----------------|----------------------------------------|
 |things / речі         |flea market      |`https://t.me/andrrit2`                 |
-|spot / місце          |the door         |**placeholder — needs the Maps link**   |
+|spot / місце          |the door         |Maps search on Bernardgasse 7/4, Wien   |
 |experiences / враження|events, tours    |`https://www.instagram.com/upointvienna`|
 |calendar / афіша      |in-page schedule |no URL — opens the `#cal` panel         |
 |talks / розмови       |lectorium        |`https://t.me/Upointlecture`            |
@@ -27,9 +27,11 @@ Ukrainian, and an audience much wider than the founding crowd. They are repositi
 
 Six words. Mapping lives in `ITEMS` and `LINKS` at the top of the script.
 
-**`spot` is wired to Instagram as a stand-in.** That is a dead end for the one visitor who
-most needs a straight answer — someone standing on the street trying to find the door. Get
-the Google Maps place link into `LINKS.spot` before this goes near a real audience.
+**`spot` carries the address as its tag line**, so the street and number are readable without
+tapping anything, and the tap opens Maps. It is a Maps *search* on the address rather than a
+place link, because no place ID was supplied; a search resolves from any country and hands
+off to the native app. If the club sends a place link later, swap `LINKS.spot` for it — a
+place link is more precise and survives the address being mistyped.
 
 **`calendar` has no URL.** It opens a panel filled from the `EVENTS` array, which ships empty,
 so today it shows its empty state: *no dates up yet, they go to the Telegram channel first*,
@@ -68,7 +70,7 @@ y uses that same scale factor, which makes `logo.scale` the drawn width in px:
 |            |                                                                       |
 |------------|-----------------------------------------------------------------------|
 |`MARK_D`    |the outline, filled via `MARK_PATH` (a `Path2D` built once at load)    |
-|`SPINE`     |its centreline → `LOGO_LOCAL`, what the dot walks and roots hang off   |
+|`SPINE`     |its centreline → `LOGO_LOCAL`, what the dot paints and roots hang off  |
 
 The centreline was recovered by splitting the outline at its two straight cap segments,
 resampling both sides by arc length, and averaging paired points; the cap midpoints are the
@@ -79,9 +81,15 @@ the dot size, the trunk width, every taper, and the root widths, so the tree is 
 heavier than it was under the old approximation (0.085). If the tree ever needs slimming,
 change the taper in `growTree()`, not this.
 
-The paint-on reveal is a clip, not a partial stroke: the spine's x is monotonic, so a moving
-vertical edge at the dot reveals exactly the ink laid so far, and the straight edge stays
-hidden under the dot. At `logo.prog >= 1` the clip is skipped and the outline is exact.
+The paint-on reveal (`clipPainted()`) is the area a brush would have swept: the union of discs
+along the spine so far, intersected with a half-plane square to the stroke at the dot. Both
+halves are needed — the discs alone bulge past the dot, the square cut alone reveals unrelated
+parts of the mark that fall behind the same line. It was a full-height vertical curtain once,
+which crossed the steep parts of the mark at a shallow angle and dropped whole sections in
+ahead of the dot. The disc chain starts behind the first spine point so the round brush does
+not eat the mark's angled left cut, and the dot runs at `R*1.18` while painting so it covers
+the square cut where the mark is wider than the median. At `logo.prog >= 1` there is no clip
+and the outline is exact.
 
 -----
 
@@ -111,7 +119,7 @@ Five states. Tap, click, swipe, wheel, arrow keys, space and enter all advance.
 |`aboutDone`|Idles.                                                                                                                                                     |
 |`menu`     |Dot drops below the block, text flies off the top, dot travels down to the base of the tree on the footer mark. Six words appear.                          |
 |—          |First swipe: trunk climbs **and** the root system pours out under the mark and walks off the bottom edge. Both at once.                                    |
-|—          |Each swipe walks the dot to that destination along the branches and shows the link.                                                                        |
+|—          |Each swipe launches the dot to that destination while the branches to it paint themselves, and shows the link.                                             |
 
 **Directions in menu.** Nothing is hardcoded: `pickByAngle()` matches a swipe to whichever tip
 sits closest to its angle, measured from the centre of the tip cluster. Six words do not fit
@@ -137,6 +145,16 @@ The four original words keep their cardinal swipes; the two new ones answer the 
 Arrow keys cover the four cardinals only — the other two are a tap on the word or the Index,
 which is one more reason Index is non-negotiable.
 
+**Label placement.** A label is as wide as its tag line, and `telegram · lectorium` is much
+wider than `talks`. Clamping the whole element into the margin therefore dragged the word off
+its branch and in against the trunk. `placeMenu()` now anchors a label that will not fit to
+the outer margin and flips its alignment instead, so the word stays out at its own side and
+the long tag runs inward under it.
+
+**Back to top.** The sequence only ran forwards, so the tree was a dead end short of a reload.
+`restart()` clears what was grown and returns to bare paper; the control only appears in
+`menu`, which is the only phase with no way out.
+
 **Index** (top right) lists all four as plain text at every stage after the logo. Non-negotiable.
 Someone arriving for the lectorium link gets it in two seconds without playing anything.
 
@@ -150,8 +168,13 @@ each one contributes to reading as a tree.
 1. **Acyclic.** Every stroke starts on an existing stroke and ends in open space. Nothing ever
    joins two existing points. Break this rule and the drawing collapses into a blob within
    three swipes. This is the whole thing.
-1. **The dot walks, never cuts.** Getting from `things` to `talks` means retracing down the
-   left limb to the fork and out the right one. Retracing lays no ink.
+1. **The dot jumps, the tree draws itself.** Selecting a word starts every undrawn segment on
+   the route painting itself, cascading outward, while the dot flies straight to the tip and
+   lands as the last one arrives. It used to walk and retrace, laying the ink as it went;
+   that was truer to §3 but slow by the fifth swipe, and jumping tested better. The route
+   still decides which segments exist, so rule 1 is untouched. Jumping skips the retrace, and
+   retraced segments were what sprouted the spare twigs, so `goJump()` sprouts on skipped
+   steps at the same rate — otherwise the tree fills in visibly thinner.
 1. **Taper.** Each generation is 0.62 of its parent’s width, floor 0.16. The trunk starts
    slightly fatter than the logo stroke.
 1. **Angle.** 22–44° off the parent, side alternating, 8° jitter.
@@ -188,13 +211,19 @@ roots          growRoots(), rootStep()       recursive, capped at 68 strokes
 ink            ribbon(), inkStroke()         tapered fills
                drawLogo()                    fills MARK_PATH, clipped while painting
                bakeStroke()                  moves finished ink to the offscreen layer
-walking        chainOf(), route(), walk()    tree traversal
+routing        chainOf(), route()            which segments lie between two tips
 phases         goLogo/goAbout/goMenu/go()    the sequence
+               goJump()                      dot flies, branches paint themselves
+               restart()                     back to top, clears what was grown
 input          pointer, wheel, keyboard
 frame()        render loop
 ```
 
 **Render order per frame:** clear → mark → baked layer → live strokes → dot.
+
+**Self-painting segments.** A segment with a `t0` is drawing itself on its own clock, exactly
+as twigs and roots already did; `frame()` advances it and fires its `onDone`. Nothing drives
+`seg.prog` from the dot any more.
 
 **Smoothing.** Every stroke renders as a chain of quadratics where each sample point becomes
 a *control point*, not a vertex. That is why there are no corners. Do not replace it with
@@ -224,11 +253,12 @@ The dot’s radius also tracks the width of whatever branch it stands on, clampe
 |---------------------------------|-------------------------------------------------------------------------|
 |Everything downstream of the mark|`WRATIO`                                                                 |
 |Tree proportions                 |`growTree()` — the `H*0.70`, `H*0.47`, `H*0.42`, `H*0.175` node heights  |
-|Twig density                     |`walk()` — `k = 1 + (Math.random()*2.4                                   |
+|Twig density                     |`goJump()` — `k = 1 + (Math.random()*2.4)` per finished segment          |
 |Twig ceiling                     |`sprout()` — `twigs.length > 44`                                         |
 |Root spread                      |`growRoots()` — primary count, `lat` multiplier, taproot threshold `0.34`|
 |Root ceiling                     |`rootStep()` — `roots.length > 68`                                       |
-|Walk speed                       |`walk()` — `clamp(seg.len*1.9, 420, 1050)`                               |
+|Branch paint speed               |`goJump()` — `clamp(seg.len*1.5, 300, 760)`, and `0.55` for the overlap  |
+|Leap speed                       |`goJump()` — `clamp(d*1.35, 400, 900)`                                   |
 |Jelly                            |`dot.sv += (-dot.s*0.26 - dot.sv*0.24)`                                  |
 
 -----
