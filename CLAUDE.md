@@ -51,8 +51,21 @@ remembers to edit it. See §11.
 |Ink   |`#111`                    |
 |Paper |`#fff`                    |
 
-**Colour logic, hold to this:** brown is the club (mark, roots, the moving point).
-Yellow is what grew (trunk, branches, twigs). Nothing else gets a colour.
+**Colour logic.** Brown is the club: the mark, the roots, and the point while it belongs to
+them. Yellow is what grew: trunk, branches, twigs. Nothing else gets a colour.
+
+**The dot carries the brand between them**, and that is the spine of the sequence. It is brown
+while it is painting the mark — it *is* the mark in motion. The instant it pops off the right
+tip it turns yellow, and it stays yellow through the about page and all the way down to the
+root. It goes brown again the moment it takes to the tree. So the two brand colours are not
+decoration; they mark which half of the story the point is in. `dot.c` runs 0→1 between
+`BARK_RGB` and `INK_RGB`; the beats are set in `goLogo()`, `go()` and `restart()`.
+
+**The about page is the dot, opened out.** On landing it grows into a yellow disc that covers
+the screen (`flood`), the copy is knocked out of it in white, and on the way to the tree the
+whole page collapses back into the dot it came from. That is the one place yellow is a field
+rather than a stroke, and it is allowed because the field *is* the point — not a background
+someone chose.
 
 **Type.** The brand board is a geometric sans with a double-storey `a`, most likely Gilroy
 or Sofia Pro. Both are commercial. The stack falls back to Figtree off Google Fonts. Buy the
@@ -81,15 +94,19 @@ the dot size, the trunk width, every taper, and the root widths, so the tree is 
 heavier than it was under the old approximation (0.085). If the tree ever needs slimming,
 change the taper in `growTree()`, not this.
 
-The paint-on reveal (`clipPainted()`) is the area a brush would have swept: the union of discs
-along the spine so far, intersected with a half-plane square to the stroke at the dot. Both
-halves are needed — the discs alone bulge past the dot, the square cut alone reveals unrelated
-parts of the mark that fall behind the same line. It was a full-height vertical curtain once,
-which crossed the steep parts of the mark at a shallow angle and dropped whole sections in
-ahead of the dot. The disc chain starts behind the first spine point so the round brush does
-not eat the mark's angled left cut, and the dot runs at `R*1.18` while painting so it covers
-the square cut where the mark is wider than the median. At `logo.prog >= 1` there is no clip
-and the outline is exact.
+The paint-on reveal (`clipPainted()`) is exactly the nib's sweep: discs of the dot's own
+radius along the spine, ending on the dot's **sub-sample** position rather than the nearest
+sample. It works because the mark is nowhere wider than the nib — true max half-width `0.0498`
+against a nib of `~0.061` in the same units, with the dot at `R*1.18` while painting — so the
+ink can never reach past the dot and there is nothing to see behind it.
+
+Two earlier versions were worse and are worth not repeating. A full-height vertical curtain
+crossed the steep parts of the mark at a shallow angle and dropped whole sections in ahead of
+the dot. Replacing the curtain with a straight cut square to the stroke fixed that, but a
+straight cut through a curve clips ink the brush has already laid on the inside of a bend,
+which reads as the drawing lagging the dot. A round leading edge has neither problem. The disc
+chain still starts behind the first spine point, so the round brush does not eat the mark's
+angled left cut. At `logo.prog >= 1` there is no clip and the outline is exact.
 
 -----
 
@@ -114,10 +131,10 @@ Five states. Tap, click, swipe, wheel, arrow keys, space and enter all advance.
 |-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
 |`start`    |Empty paper. The dot lands centre and idles. Nothing else on screen.                                                                                       |
 |`logo`     |Dot hops to the left tip and paints the mark, then pops off the right tip. It gains a paper collar and a 16% size bump at that moment: the separation beat.|
-|`logoDone` |Idles beside the tip. UA/EN and Index appear.                                                                                                              |
-|`about`    |Mark snaps down to the footer with a back-ease overshoot. Dot flies top-left, about text writes itself in word by word, dot idles at its origin.           |
+|`logoDone` |Idles beside the tip, now yellow. UA/EN appears.                                                                                                           |
+|`about`    |Mark snaps to the footer with a back-ease overshoot. The dot — now yellow — flies top-left, then opens out into a yellow page; the copy writes itself in, in white.|
 |`aboutDone`|Idles.                                                                                                                                                     |
-|`menu`     |Dot drops below the block, text flies off the top, dot travels down to the base of the tree on the footer mark. Six words appear.                          |
+|`menu`     |The page collapses back into the dot, the copy flies off the top, and the dot drops to the base of the tree on the footer mark, still yellow. Six words appear.|
 |—          |First swipe: trunk climbs **and** the root system pours out under the mark and walks off the bottom edge. Both at once.                                    |
 |—          |Each swipe launches the dot to that destination while the branches to it paint themselves, and shows the link.                                             |
 
@@ -226,6 +243,7 @@ canvas         layout(), footerPose()        sizing, DPR cap at 2
 the dot        dot{}, travel(), hopIdle()    jelly spring + path following
 the tree       growTree(), sprout()          skeleton + twigs
 roots          growRoots(), rootStep()       recursive, capped at 68 strokes
+colour         dotFill(), flood{}            the dot's brand colour, and the about page
 ink            ribbon(), inkStroke()         tapered fills
                drawLogo()                    fills MARK_PATH, clipped while painting
                bakeStroke()                  moves finished ink to the offscreen layer
@@ -279,6 +297,8 @@ The dot’s radius also tracks the width of whatever branch it stands on, clampe
 |Branch paint speed               |`goJump()` — `clamp(seg.len*1.5, 300, 760)`, and `0.55` for the overlap  |
 |Leap speed                       |`goJump()` — `clamp(d*1.35, 400, 900)`                                   |
 |Jelly                            |`dot.sv += (-dot.s*0.26 - dot.sv*0.24)`                                  |
+|Colour crossfade speed           |`dot.c += (dot.cT-dot.c)*0.14`                                           |
+|About page open / collapse       |`goAbout()` — `tween(600, …)`; `goMenu()` — `tween(540, …)`              |
 
 -----
 
