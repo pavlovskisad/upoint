@@ -389,7 +389,13 @@ function growTree(){
     mkSeg(J2,cal,  SW*0.58, SW*0.34, bd(150)),
     mkSeg(J2,crown,SW*0.70, SW*0.36, bd(180))
   ];
-  TREE = {base, segs,
+  // One or two words per session sit ON their branch instead of clear of it,
+  // so the limb grows straight through the label. All six would read as sloppy
+  // placement; one or two reads as the tree taking the page over.
+  const keys = ITEMS.map(it=>it.key), through = new Set();
+  const nThrough = 1 + ((Math.random()*2)|0);
+  while(through.size < nThrough) through.add(pick1(keys));
+  TREE = {base, segs, through,
           tips:{market:left, insta:crown, lecture:right, channel:comm, spot, calendar:cal}};
 }
 
@@ -606,7 +612,10 @@ function placeMenu(){
     const u = e.querySelector('.u');
     u.classList.remove('inL','inR'); u.classList.add(n.x < W/2 ? 'inL' : 'inR');
     let x, y = n.y-15;
-    if(it.side==='left'  && n.x-gap-w >= M)   x = n.x-gap-w;   // beside, outboard
+    if(TREE.through && TREE.through.has(it.key)){
+      x = clamp(n.x-w/2, M, Math.max(M, W-M-w));               // centred on the tip
+    }
+    else if(it.side==='left'  && n.x-gap-w >= M)   x = n.x-gap-w;   // beside, outboard
     else if(it.side==='right' && n.x+gap+w <= W-M) x = n.x+gap;
     else {
       // No room outboard — sit just above the tip rather than sliding in

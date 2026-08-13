@@ -198,6 +198,11 @@ on its tip: beside the tip when there is room outboard, otherwise just above it.
 slides a label to the margin — that was tried, and a label parked at the edge while its
 branch sat 150px away read as unrelated to the tree.
 
+**One or two words per session sit *on* their branch** rather than clear of it, so the limb
+grows straight through the label — `TREE.through`, picked once per tree in `growTree()`. All
+six would read as sloppy placement; one or two reads as the tree taking the page over. The
+words are HTML above the canvas, so the branch passes behind the text and nothing is lost.
+
 What made that hard is that the label used to be as wide as its **tag line**, and
 `telegram · lectorium` is far wider than `talks`, so fitting the tag dragged the word off its
 branch. The tag is now `position:absolute`, out of flow: a label measures the width of its
