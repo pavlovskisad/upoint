@@ -627,6 +627,34 @@ function placeMenu(){
     }
     e.style.left = x+'px'; e.style.top = y+'px';
   });
+  unstack();
+}
+/* Each label is placed against its own tip and knows nothing about the others,
+   so two tips that sit close together can land their words on top of each other
+   — `experiencescalendar`. Push overlapping pairs apart **vertically only**:
+   moving them sideways would slide them off their branches, which is the thing
+   placement is for. The word that already sits higher goes up, and each takes
+   half the correction, so neither ends up far from its tip. */
+function unstack(){
+  const GAP = 9, TOP = 58, BOT = H-46;
+  const bs = ITEMS.filter(it=>it.el).map(it=>{ const e=it.el;
+    return {e, l:e.offsetLeft, t:e.offsetTop, w:e.offsetWidth, h:e.offsetHeight}; });
+  for(let pass=0; pass<5; pass++){
+    let moved = false;
+    for(let i=0;i<bs.length;i++) for(let j=i+1;j<bs.length;j++){
+      const a=bs[i], b=bs[j];
+      if(Math.min(a.l+a.w, b.l+b.w) - Math.max(a.l, b.l) <= 0) continue;   // clear across
+      const oy = Math.min(a.t+a.h, b.t+b.h) - Math.max(a.t, b.t);
+      if(oy <= -GAP) continue;                                             // clear down
+      const push = (oy + GAP)/2;
+      const up = a.t <= b.t ? a : b, dn = up===a ? b : a;
+      up.t = clamp(up.t - push, TOP, BOT);
+      dn.t = clamp(dn.t + push, TOP, BOT);
+      moved = true;
+    }
+    if(!moved) break;
+  }
+  bs.forEach(b => { b.e.style.top = Math.round(b.t)+'px'; });
 }
 function paintText(){
   ITEMS.forEach(it=>{ if(!it.el) return;

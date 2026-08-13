@@ -222,6 +222,16 @@ on its tip: beside the tip when there is room outboard, otherwise just above it.
 slides a label to the margin — that was tried, and a label parked at the edge while its
 branch sat 150px away read as unrelated to the tree.
 
+**Labels never overlap each other.** Each one is placed against its own tip and knows nothing
+about the other five, so two tips that sit close together used to land their words on top of
+each other — `experiencescalendar`. `unstack()` runs after placement and pushes overlapping
+pairs apart **vertically only**; sideways would slide them off their branches, which is what
+the placement rules exist to prevent. Each takes half the correction and it repeats a few
+times so a three-way pile settles.
+
+It is rare enough to be easy to miss: at 390×800 it did not reproduce in six sessions with the
+fix removed. Crowd the viewport to 320×580 and it shows up in 2 of 8. Test it there.
+
 **One or two words per session sit *on* their branch** rather than clear of it, so the limb
 grows straight through the label — `TREE.through`, picked once per tree in `growTree()`. All
 six would read as sloppy placement; one or two reads as the tree taking the page over. The
