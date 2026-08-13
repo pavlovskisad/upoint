@@ -59,14 +59,17 @@ them. Yellow is what grew: trunk, branches, twigs. Nothing else gets a colour.
 |Beat                    |Colour                    |
 |------------------------|--------------------------|
 |opening, before any tap  |`GPS_RGB` — map-pin blue |
-|the tap itself           |`INK_RGB` — yellow, snapped, not eased|
-|the hop to the mark, then painting|`BARK_RGB` — brown|
+|the tap, the beat after it, and the whole hop|`INK_RGB` — yellow, snapped, not eased|
+|landed on the mark's left tip|morphs to `BARK_RGB` — brown|
+|painting the mark        |`BARK_RGB` — brown       |
 |off the mark, through about, down to the root|`INK_RGB` — yellow|
 |on the tree              |`BARK_RGB` — brown       |
 
-The tap snaps to yellow rather than easing to it: blue easing to yellow passes through olive
-and reads as mud. It then eases blue-free from yellow into brown across the hop, so the first
-tap shows both brand colours before a single stroke is laid.
+The tap **snaps** to yellow rather than easing into it: blue easing to yellow passes through
+olive and reads as mud. The yellow then holds — through a beat before anything moves, and
+through the whole hop — so the brand colour arrives on the paper before any ink does. The
+morph to brown happens where it can actually be watched, with the dot sitting still on the
+left tip, and runs slower than the standard crossfade (`dot.colK` drops to `0.09` for it).
 
 It is brown while it paints the mark because there it *is* the mark in motion. It turns yellow
 the instant it pops off the right tip and stays yellow through the about page and down to the
@@ -173,7 +176,7 @@ Five states. Tap, click, swipe, wheel, arrow keys, space and enter all advance.
 |Phase      |What happens                                                                                                                                               |
 |-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
 |`start`    |Empty paper. The dot lands centre as a blue map pin, accuracy ring pulsing, and idles. Nothing else on screen.                                             |
-|`logo`     |The pin flashes yellow, settles to brown over the hop to the left tip, then paints the mark. The nib sinks under its own ink at `prog 0.03` and surfaces at `0.82`, so the middle of the stroke draws itself. It pops off the right tip: the separation beat.|
+|`logo`     |The pin snaps yellow, holds a beat, hops to the left tip still yellow, and morphs to brown sitting there. The first ink then soaks in rather than appearing — the mark's flat angled left cut is entirely inside the brush's first disc, so it used to pop in whole on touchdown, with the landing splat flattening the dot so it could not even cover it. The nib sinks under its own ink at `prog 0.03`, surfaces at `0.82`, then pops off the right tip: the separation beat.|
 |`logoDone` |Idles beside the tip, now yellow. UA/EN appears.                                                                                                           |
 |`about`    |The dot squats and launches top-left **as the mark drops to the footer on the same frame** — the leap pushes the logo down. It then opens out into a yellow page; the copy writes itself in, in white.|
 |`aboutDone`|Idles.                                                                                                                                                     |
@@ -367,7 +370,8 @@ The dot’s radius also tracks the width of whatever branch it stands on, clampe
 |Branch paint speed               |`goJump()` — `clamp(seg.len*1.5, 300, 760)`, and `0.55` for the overlap  |
 |Leap speed                       |`goJump()` — `clamp(d*1.35, 400, 900)`                                   |
 |Jelly                            |`dot.sv += (-dot.s*0.26 - dot.sv*0.24)`                                  |
-|Colour crossfade speed           |`dot.c += (dot.cT-dot.c)*0.14`                                           |
+|Colour crossfade speed           |`dot.colK`, default `0.14`; `0.09` for the yellow→brown morph             |
+|First-ink soak                   |`goLogo()` — `wait(330)` then `tween(280, …)` on `logo.ink`               |
 |About page open / collapse       |`goAbout()` — `tween(600, …)`; `goMenu()` — `tween(540, …)`              |
 |Push-off sync                    |`goAbout()` — `PREP`/`FLIGHT` drive both the leap and the mark's drop     |
 |Map-pin ring                     |`dot.gps`, and the `2200`ms pulse in the dot's draw                       |

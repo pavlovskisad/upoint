@@ -240,11 +240,11 @@ const WRATIO = 0.1148;   // median stroke width / mark width
 // the bends. A reveal disc of MARK_HW leaves those corners unrevealed until the
 // clip is dropped, which reads as the logo snapping into shape at the end.
 const MARK_HW = 0.0498, MARK_REACH = 0.0828;
-const logo = {scale:0, ox:0, oy:0, prog:0, vis:false};
+const logo = {scale:0, ox:0, oy:0, prog:0, vis:false, ink:1};
 
 /* ═══════════ the dot ═══════════ */
 const dot = {x:0,y:0,px:0,py:0,s:0,sv:0,ang:0,vis:0,ring:0,ringT:0,r:0,rT:0,
-             col:GPS_RGB.slice(), colT:GPS_RGB.slice(), gps:1, gpsT:1, sub:1, subT:1};
+             col:GPS_RGB.slice(), colT:GPS_RGB.slice(), colK:0.14, gps:1, gpsT:1, sub:1, subT:1};
 let anim=null, idle=false, nextIdle=0, busy=false;
 const eIO = t => t<.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
 const eOut = t => 1-Math.pow(1-t,3);
@@ -478,6 +478,7 @@ function capDots(o, w0, w1, color, n){
 }
 function drawLogo(){
   ctx.save();
+  if(logo.ink < 1) ctx.globalAlpha = fade * logo.ink;   // the first ink soaking in
   if(logo.prog < 1) clipPainted();
   ctx.translate(logo.ox, logo.oy); ctx.scale(logo.scale, logo.scale);
   ctx.fillStyle = BARK; ctx.fill(MARK_PATH);
@@ -680,16 +681,26 @@ const wait=(ms,f)=>setTimeout(f, RM?0:ms);
 
 function goLogo(){
   busy=true; idle=false; hintEl.classList.remove('vis');
-  // The pin does not go straight to brown: it snaps to yellow on the tap and
-  // settles into brown during the hop to the mark, so the first tap shows both
-  // brand colours before a single stroke is laid. Snapped rather than eased,
-  // because blue easing to yellow passes through olive and reads as mud.
+  // The pin snaps to yellow on the tap — snapped, not eased, because blue
+  // easing to yellow passes through olive and reads as mud — and it *stays*
+  // yellow: through a beat before it moves, and through the whole hop. The
+  // morph to brown happens where it can be watched, with the dot sitting still
+  // on the mark's left tip, and runs slower than the standard crossfade.
   dot.col = INK_RGB.slice(); dot.colT = INK_RGB; dot.gpsT = 0;
-  wait(230, ()=>{ dot.colT = BARK_RGB; });
   const lp = LOGO_LOCAL.map(p=>({x:logo.ox+p.x*logo.scale, y:logo.oy+p.y*logo.scale}));
+  wait(170, ()=>
   travel(arc(dot.x,dot.y,lp[0].x,lp[0].y,R*2.4,30),460,{end:()=>{
-    logo.vis=true;
-    travel(lp, RM?1:2100, {logo:true, end:()=>{
+    dot.colK = 0.09; dot.colT = BARK_RGB;
+    // Hold on landing. The mark's left end is a flat angled cut, and the whole
+    // of it is inside the brush's first disc, so it used to appear the instant
+    // the dot touched down — with the landing splat flattening the dot so it
+    // could not even cover it. Let the splat settle on bare paper, then soak
+    // the ink in as the brush starts to move.
+    wait(330, ()=>{
+      dot.colK = 0.14;
+      logo.vis=true; logo.ink=0;
+      tween(RM?1:280, p=>{ logo.ink = eOut(p); });
+      travel(lp, RM?1:2100, {logo:true, end:()=>{
       const tip=lp[lp.length-1];
       dot.colT = INK_RGB;            // brown was the mark; off it, the dot is yellow
       travel(arc(tip.x,tip.y,tip.x-R*0.2,tip.y-R*2.6,R*3.4,26),430,{prep:100,end:()=>{
@@ -697,8 +708,9 @@ function goLogo(){
         document.getElementById('tr').classList.add('vis','on');
         phase='logoDone'; busy=false; idle=true; nextIdle=performance.now()+500; setHint();
       }});
-    }});
-  }});
+      }});
+    });
+  }}));
 }
 function goAbout(){
   busy=true; idle=false; hintEl.classList.remove('vis');
@@ -832,7 +844,7 @@ function restart(){
       sctx.clearRect(0,0,W,H);                   // the baked layer
       menuEl.innerHTML=''; ITEMS.forEach(it=>{ it.el=null; it.node=null; });
       aboutEl.className=''; aboutEl.style.opacity=0; aboutEl.innerHTML='';
-      logo.vis=false; logo.prog=0;
+      logo.vis=false; logo.prog=0; logo.ink=1;
       logo.scale=markW; logo.ox=cx; logo.oy=cy;
       dot.x=cx; dot.y=cy; dot.ring=0; dot.ringT=0; dot.r=R; dot.rT=R;
       dot.col=GPS_RGB.slice(); dot.colT=GPS_RGB.slice(); dot.gps=0; dot.gpsT=1;
@@ -969,7 +981,7 @@ function frame(now){
   if(dot.vis<1) dot.vis=clamp(dot.vis+0.035,0,1);
   dot.ring += (dot.ringT-dot.ring)*0.07;
   dot.r += (dot.rT-dot.r)*0.10;
-  for(let i=0;i<3;i++) dot.col[i] += (dot.colT[i]-dot.col[i])*0.14;
+  for(let i=0;i<3;i++) dot.col[i] += (dot.colT[i]-dot.col[i])*dot.colK;
   dot.gps += (dot.gpsT-dot.gps)*0.10;
   // Once the stroke is under way the nib sinks into its own ink and the line
   // draws itself, then surfaces again before it reaches the far tip. Driven off
