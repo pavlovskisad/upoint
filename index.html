@@ -240,7 +240,8 @@ const WRATIO = 0.1148;   // median stroke width / mark width
 // the bends. A reveal disc of MARK_HW leaves those corners unrevealed until the
 // clip is dropped, which reads as the logo snapping into shape at the end.
 const MARK_HW = 0.0498, MARK_REACH = 0.0828;
-const logo = {scale:0, ox:0, oy:0, prog:0, vis:false, ink:1};
+const logo = {scale:0, ox:0, oy:0, prog:0, vis:false, ink:1, col:BARK_RGB.slice()};
+const logoFill = () => `rgb(${logo.col[0]},${logo.col[1]},${logo.col[2]})`;
 
 /* ═══════════ the dot ═══════════ */
 const dot = {x:0,y:0,px:0,py:0,s:0,sv:0,ang:0,vis:0,ring:0,ringT:0,r:0,rT:0,
@@ -481,7 +482,7 @@ function drawLogo(){
   if(logo.ink < 1) ctx.globalAlpha = fade * logo.ink;   // the first ink soaking in
   if(logo.prog < 1) clipPainted();
   ctx.translate(logo.ox, logo.oy); ctx.scale(logo.scale, logo.scale);
-  ctx.fillStyle = BARK; ctx.fill(MARK_PATH);
+  ctx.fillStyle = logoFill(); ctx.fill(MARK_PATH);
   ctx.restore();
 }
 /* The reveal is the area a brush has actually swept: everything within a brush
@@ -682,11 +683,11 @@ const wait=(ms,f)=>setTimeout(f, RM?0:ms);
 function goLogo(){
   busy=true; idle=false; hintEl.classList.remove('vis');
   // The pin snaps to yellow on the tap — snapped, not eased, because blue
-  // easing to yellow passes through olive and reads as mud — and it *stays*
-  // yellow: through a beat before it moves, and through the whole hop. The
-  // morph to brown happens where it can be watched, with the dot sitting still
-  // on the mark's left tip, and runs slower than the standard crossfade.
+  // easing to yellow passes through olive and reads as mud — and everything in
+  // the opening stays that one colour: the nib, and the mark it lays with it.
+  // The mark only becomes brown later, out of sight under the about page.
   dot.col = INK_RGB.slice(); dot.colT = INK_RGB; dot.gpsT = 0;
+  logo.col = INK_RGB.slice();
   const lp = LOGO_LOCAL.map(p=>({x:logo.ox+p.x*logo.scale, y:logo.oy+p.y*logo.scale}));
   wait(170, ()=>
   travel(arc(dot.x,dot.y,lp[0].x,lp[0].y,R*2.4,30),460,{end:()=>{
@@ -698,13 +699,9 @@ function goLogo(){
     wait(330, ()=>{
       logo.vis=true; logo.ink=0;
       tween(RM?1:280, p=>{ logo.ink = eOut(p); });
-      // The morph happens once it is already under way, not while it sits: the
-      // nib sets off yellow and turns into the mark's own colour as it lays the
-      // first of it.
-      wait(100, ()=>{ dot.colK = 0.07; dot.colT = BARK_RGB; });
       travel(lp, RM?1:2100, {logo:true, end:()=>{
       const tip=lp[lp.length-1];
-      dot.colK = 0.14; dot.colT = INK_RGB;   // off the mark, the dot is yellow
+      // already yellow — it and the mark it drew are the same colour
       travel(arc(tip.x,tip.y,tip.x-R*0.2,tip.y-R*2.6,R*3.4,26),430,{prep:100,end:()=>{
         dot.ringT=1;
         document.getElementById('tr').classList.add('vis','on');
@@ -737,6 +734,9 @@ function goAbout(){
     document.body.classList.add('flood');
     const RC = coverR(flood.x, flood.y);
     tween(600, p=>{ flood.r = RC*eOut(p); }, ()=>{
+      // The page now covers everything. Swap the mark to the club's brown while
+      // it cannot be seen, so it is already brown when the page collapses off it.
+      logo.col = BARK_RGB.slice();
       aboutEl.classList.add('go');
       wait(900,()=>{ phase='aboutDone'; busy=false; idle=true; nextIdle=performance.now()+400; setHint(); });
     });
