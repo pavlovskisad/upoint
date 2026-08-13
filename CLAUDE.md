@@ -54,12 +54,28 @@ remembers to edit it. See §11.
 **Colour logic.** Brown is the club: the mark, the roots, and the point while it belongs to
 them. Yellow is what grew: trunk, branches, twigs. Nothing else gets a colour.
 
-**The dot carries the brand between them**, and that is the spine of the sequence. It is brown
-while it is painting the mark — it *is* the mark in motion. The instant it pops off the right
-tip it turns yellow, and it stays yellow through the about page and all the way down to the
-root. It goes brown again the moment it takes to the tree. So the two brand colours are not
-decoration; they mark which half of the story the point is in. `dot.c` runs 0→1 between
-`BARK_RGB` and `INK_RGB`; the beats are set in `goLogo()`, `go()` and `restart()`.
+**The dot carries the brand**, and that is the spine of the sequence:
+
+|Beat                    |Colour                    |
+|------------------------|--------------------------|
+|opening, before any tap  |`GPS_RGB` — map-pin blue |
+|first tap, painting the mark|`BARK_RGB` — brown     |
+|off the mark, through about, down to the root|`INK_RGB` — yellow|
+|on the tree              |`BARK_RGB` — brown       |
+
+It is brown while it paints the mark because there it *is* the mark in motion. It turns yellow
+the instant it pops off the right tip and stays yellow through the about page and down to the
+root, then goes brown again as it takes to the tree. The two brand colours are not decoration;
+they mark which half of the story the point is in.
+
+**The blue is the one deliberate exception** to “nothing else gets a colour”. Before the first
+tap the dot is a map pin — blue, with a pulsing accuracy ring (`dot.gps`) — so the opening
+screen reads as *you are here* rather than as a stray dot, and the first tap is the moment the
+point stops being a map marker and becomes the club's. The colour is dropped the instant that
+happens and never returns until `restart()` puts you back at the opening.
+
+`dot.col` eases per channel toward `dot.colT`, so any colour can follow any other; the beats
+are set in `goLogo()`, `go()` and `restart()`.
 
 **The about page is the dot, opened out.** On landing it grows into a yellow disc that covers
 the screen (`flood`), the copy is knocked out of it in white, and on the way to the tree the
@@ -144,10 +160,10 @@ Five states. Tap, click, swipe, wheel, arrow keys, space and enter all advance.
 
 |Phase      |What happens                                                                                                                                               |
 |-----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-|`start`    |Empty paper. The dot lands centre and idles. Nothing else on screen.                                                                                       |
-|`logo`     |Dot hops to the left tip and paints the mark, then pops off the right tip. It gains a paper collar and a 16% size bump at that moment: the separation beat.|
+|`start`    |Empty paper. The dot lands centre as a blue map pin, accuracy ring pulsing, and idles. Nothing else on screen.                                             |
+|`logo`     |The pin turns brown, hops to the left tip and paints the mark, then pops off the right tip: the separation beat.                                           |
 |`logoDone` |Idles beside the tip, now yellow. UA/EN appears.                                                                                                           |
-|`about`    |Mark snaps to the footer with a back-ease overshoot. The dot — now yellow — flies top-left, then opens out into a yellow page; the copy writes itself in, in white.|
+|`about`    |The dot squats and launches top-left **as the mark drops to the footer on the same frame** — the leap pushes the logo down. It then opens out into a yellow page; the copy writes itself in, in white.|
 |`aboutDone`|Idles.                                                                                                                                                     |
 |`menu`     |The page collapses back into the dot, the copy flies off the top, and the dot drops to the base of the tree on the footer mark, still yellow. Six words appear.|
 |—          |First swipe: trunk climbs **and** the root system pours out under the mark and walks off the bottom edge. Both at once.                                    |
@@ -187,6 +203,12 @@ What made that hard is that the label used to be as wide as its **tag line**, an
 branch. The tag is now `position:absolute`, out of flow: a label measures the width of its
 word alone, and the tag runs toward the middle of the screen (`inL` / `inR`), where there is
 always room for it. Only the word has to fit anywhere near its tip.
+
+**The push-off.** Leaving the logo is one gesture with two halves: the dot squats, then
+launches up-left while the mark drops to the footer starting on the same frame. Both run the
+same duration, and the mark takes the `eBack` overshoot, which lands as the impact. The flight
+uses `eOut` rather than the default `eIO` — with `eIO` the dot crawls out of the squat while
+`eBack` drops hard, so the logo looked like it moved first even though both started together.
 
 **Back to top.** The sequence only ran forwards, so the tree was a dead end short of a reload.
 The `↑` control appears only in `menu`, the one phase with no way out. `restart()` is a
@@ -330,6 +352,8 @@ The dot’s radius also tracks the width of whatever branch it stands on, clampe
 |Jelly                            |`dot.sv += (-dot.s*0.26 - dot.sv*0.24)`                                  |
 |Colour crossfade speed           |`dot.c += (dot.cT-dot.c)*0.14`                                           |
 |About page open / collapse       |`goAbout()` — `tween(600, …)`; `goMenu()` — `tween(540, …)`              |
+|Push-off sync                    |`goAbout()` — `PREP`/`FLIGHT` drive both the leap and the mark's drop     |
+|Map-pin ring                     |`dot.gps`, and the `2200`ms pulse in the dot's draw                       |
 
 -----
 
